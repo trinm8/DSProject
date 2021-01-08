@@ -34,14 +34,14 @@ services:
       context: ./services/matches
       dockerfile: Dockerfile-dev
     volumes:
-    - './services/matches:/usr/src/app'
+      - './services/matches:/usr/src/app'
     ports:
-    - 5002:5000
+      - 5002:5000
     environment:
       - FLASK_ENV=development
       - APP_SETTINGS=project.config.DevelopmentConfig
       - DATABASE_URL=postgres://postgres:postgres@matches-db:5432/matches_dev
-      - DATABASE_TEST_URL=postgres://postgres:postgres@matches-db:5432/matches_dev
+      - DATABASE_TEST_URL=postgres://postgres:postgres@matches-db:5432/matches_test
 
     depends_on:
       - matches-db
@@ -52,6 +52,59 @@ services:
       dockerfile: Dockerfile
     ports:
       - 5436:5432
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+
+  teamsclubs:
+    build:
+      context: ./services/teams
+      dockerfile: Dockerfile-dev
+    volumes:
+      - './services/teams:/usr/src/app'
+    ports:
+      - 5003:5000
+    environment:
+      - FLASK_ENV=development
+      - APP_SETTINGS=project.config.DevelopmentConfig
+      - DATABASE_URL=postgres://postgres:postgres@teams-db:5432/teams_dev
+      - DATABASE_TEST_URL=postgres://postgres:postgres@teams-db:5432/teams_test
+
+    depends_on:
+      - teamsclubs-db
+
+  teamsclubs-db:
+    build:
+      context: ./services/teams/project/db
+      dockerfile: Dockerfile
+    ports:
+      - 5437:5432
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+
+  referee:
+    build:
+      context: ./services/referee
+      dockerfile: Dockerfile-dev
+    volumes:
+      - './services/referee:/usr/src/app'
+    ports:
+      - 5004:5000
+    environment:
+      - FLASK_ENV=development
+      - APP_SETTINGS=project.config.DevelopmentConfig
+      - DATABASE_URL=postgres://postgres:postgres@referees-db:5432/referees_dev
+      - DATABASE_TEST_URL=postgres://postgres:postgres@referees-db:5432/referees_test
+    depends_on:
+      - referees-db
+
+  referees-db:
+    build:
+      context: ./services/referee/project/db
+      dockerfile: Dockerfile
+    ports:
+      - 5438:5432
     environment:
       - POSTGRES_USER=postgres
       - POSTGRES_PASSWORD=postgres
