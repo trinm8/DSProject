@@ -38,7 +38,7 @@ def add_team():
 
 @teams_blueprint.route('/teams/<team_id>/<team_stam_nr>', methods=['GET'])
 def get_single_team(team_id, team_stam_nr):
-    """Get single user details"""
+    """Get single team details"""
     response_object = {
         'status': 'fail',
         'message': 'Team doesnt exist'

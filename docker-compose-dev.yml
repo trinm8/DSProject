@@ -67,8 +67,8 @@ services:
     environment:
       - FLASK_ENV=development
       - APP_SETTINGS=project.config.DevelopmentConfig
-      - DATABASE_URL=postgres://postgres:postgres@teams-db:5432/teams_dev
-      - DATABASE_TEST_URL=postgres://postgres:postgres@teams-db:5432/teams_test
+      - DATABASE_URL=postgres://postgres:postgres@teamsclubs-db:5432/teams_dev
+      - DATABASE_TEST_URL=postgres://postgres:postgres@teamsclubs-db:5432/teams_test
 
     depends_on:
       - teamsclubs-db
@@ -108,3 +108,15 @@ services:
     environment:
       - POSTGRES_USER=postgres
       - POSTGRES_PASSWORD=postgres
+
+  uisystem:
+    build:
+      context: ./services/UI
+      dockerfile: Dockerfile-dev
+    volumes:
+    - './services/UI:/usr/src/app'
+    ports:
+    - 5005:5000
+    environment:
+      - FLASK_ENV=development
+      - APP_SETTINGS=project.config.DevelopmentConfig

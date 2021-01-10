@@ -53,3 +53,21 @@ class Club(db.Model):
             'city': self.city,
             'website': self.website
         }
+
+
+class Division(db.Model):
+
+    __tablename__ = 'divisions'
+
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    name = db.Column(db.String)
+
+    def __init__(self, id, name):
+        self.id = id
+        self.name = name
+
+    def to_json(self):
+        return {
+            'id': self.id,
+            'name': self.name
+        }
