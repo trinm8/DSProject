@@ -1,7 +1,7 @@
 from flask import Blueprint, jsonify, request
 from sqlalchemy import exc
 
-from project.api.models import Team
+from project.api.models import Team, Club
 from project import db
 
 teams_blueprint = Blueprint('teams', __name__, template_folder='./templates')
@@ -36,15 +36,15 @@ def add_team():
         return jsonify(response_object), 400
 
 
-@teams_blueprint.route('/teams/<team_id>/<team_stam_nr>', methods=['GET'])
-def get_single_team(team_id, team_stam_nr):
+@teams_blueprint.route('/teams/<team_id>', methods=['GET'])
+def get_single_team(team_id):
     """Get single team details"""
     response_object = {
         'status': 'fail',
-        'message': 'Team doesnt exist'
+        'message': 'Team doesn\'t exist'
     }
     try:
-        team = Team.query.filter_by(id=int(team_id), stam_nummer=int(team_stam_nr)).first()
+        team = Team.query.filter_by(id=int(team_id)).first()
         if not team:
             return jsonify(response_object), 404
         else:
@@ -55,6 +55,40 @@ def get_single_team(team_id, team_stam_nr):
                     'stam_nummer': team.stam_nummer,
                     'suffix': team.suffix,
                     'colors': team.colors
+                }
+            }
+            return jsonify(response_object), 200
+    except ValueError:
+        return jsonify(response_object), 404
+
+
+@teams_blueprint.route('/teamInfo/<team_id>', methods=['GET'])
+def get_team_Info(team_id):
+    """Get the info of a single team"""
+    response_object = {
+        'status': 'fail',
+        'message': 'team doesn\'t exist'
+    }
+    try:
+        team = Team.query.filter_by(id=int(team_id)).first()
+        if not team:
+            return jsonify(response_object), 404
+        else:
+            club = Club.query.filter_by(stam_nummer=team.stam_nummer).first()
+            if not club:
+                return jsonify(response_object), 404
+            response_object = {
+                'status': 'success',
+                'data': {
+                    'id': team.id,
+                    'stam_nummer': team.stam_nummer,
+                    'suffix': team.suffix,
+                    'colors': team.colors,
+                    'name': club.name,
+                    'address': club.address,
+                    'zipcode': club.zipcode,
+                    'city': club.city,
+                    'website': club.website
                 }
             }
             return jsonify(response_object), 200

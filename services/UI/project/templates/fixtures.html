@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+{% block body %}
+    {% if form %}
+        <form method=post>
+            {{ form.csrf_token }}
+            <div>Filter by division {{form.divisionID()}}(Required)</div>
+            <div>Filter by team {{form.teamID()}}</div>
+            <div>{{form.submit()}}</div>
+        </form>
+        {% if fixtures %}
+            {% for fixture in fixtures %}
+            <h1>{{ fixture[0].date().strftime("%a, %d %B %Y") }}</h1>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Home</th>
+                        <th>Result</th>
+                        <th>Away</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for match in fixture[1]["matches"] %}
+                        <tr>
+                            <td>{{match["homeTeamID"]}}</td>
+                            <td>{{match["result"]}}</td>
+                            <td>{{match["awayTeamID"]}}</td>
+                            <td>
+                                <a href="{{'fixture/%s' %match["id"]}}">
+                                    details
+                                </a>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            {% endfor %}
+        {% endif %}
+    {% endif %}
+
+
+
+    {% if form.errors %}
+    <ul class=errors>
+    {% for error in form.errors %}
+      <li>{{ error }}</li>
+    {% endfor %}
+    </ul>
+  {% endif %}
+{% endblock %}

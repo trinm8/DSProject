@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+</head>
+<body>
+    {% if fixture %}
+        <div>Date: {{fixture["date"]}}</div>
+        <div>Time: {{fixture["time"]}}</div>
+        <div>Referee: {{fixture["referee"]}}</div>
+        {% if fixture["head2headNumber"] %}
+            <div>These teams have played {{fixture["head2headNumber"]}} matches against each other before</div>
+            <div>where Team A won: {{fixture["head2headWins"][0]}} games and Team B won: {{fixture["head2headWins"][1]}} games,
+            {% if (fixture["head2headNumber"] - (fixture["head2headWins"][0] + fixture["head2headWins"][1])) > 0 %}
+                Resulting in {{fixture["head2headNumber"] - (fixture["head2headWins"][0] + fixture["head2headWins"][1])}} draws.
+            {% endif %}
+            </div>
+            <div>{{fixture["historical"]}}</div>
+            {% if fixture["currentForm"] %}
+                <div>{{ fixture["currentForm"]}}</div>
+            {% endif %}
+        {% endif %}
+    {% else %}
+        <div>Match doesnt exist</div>
+    {% endif %}
+</body>
+</html>

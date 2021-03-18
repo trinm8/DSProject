@@ -6,7 +6,7 @@ class Team(db.Model):
     __tablename__ = 'teams'
 
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
-    stam_nummer = db.Column(db.Integer, primary_key=True)
+    stam_nummer = db.Column(db.Integer)
     suffix = db.Column(db.String(128), nullable=True)
     colors = db.Column(db.String(128), nullable=False)
 

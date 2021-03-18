@@ -54,17 +54,7 @@ def get_single_referee(referee_id):
         else:
             response_object = {
                 'status': 'success',
-                'data': {
-                    'id': referee.id,
-                    'first_name': referee.first_name,
-                    'last_name': referee.last_name,
-                    'address': referee.address,
-                    'zipcode': referee.zipcode,
-                    'city': referee.city,
-                    'phoneNr': referee.phoneNr,
-                    'email': referee.email,
-                    'dateOfBirth': referee.dateOfBirth
-                }
+                'data': referee.to_json()
             }
             return jsonify(response_object), 200
     except ValueError:

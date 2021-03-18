@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+</head>
+<body>
+    {% for divisionID, data in divisions.items() %}
+        <h1>{{ data["name"] }}</h1>
+        <div>Best attack: "{{data["attack"][0]}}" with {{data["attack"][1]}} goals</div>
+        <div>Best defence: "{{data["defence"][0]}}" with {{data["defence"][1]}} goals scored against them</div>
+        <div>Team with most clean sheets: "{{data["CleanSheets"][0]}}" who got {{data["CleanSheets"][1]}} clean sheets</div>
+        <br>
+    {% endfor %}
+</body>
+</html>

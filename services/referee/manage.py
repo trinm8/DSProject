@@ -40,7 +40,6 @@ def seed_db():
                 dataiter = iter(data)
                 next(dataiter)
                 for i in dataiter:
-                    print(i[7])
                     record = Referee(first_name=i[0], last_name=i[1], address=i[2], zipcode=i[3], city=i[4],
                                      phoneNr=i[5], email=i[6], dateOfBirth=i[7])
                     db.session.add(record)

@@ -1,8 +1,6 @@
 import os
 
-from flask import Flask, jsonify
-from flask_sqlalchemy import SQLAlchemy
-
+from flask import Flask
 
 
 #db = SQLAlchemy()
@@ -16,7 +14,7 @@ def create_app(script_info=None):
 
     #db.init_app(app)
 
-    from project.api.main import ui_blueprint
+    from project.main import ui_blueprint
     app.register_blueprint(ui_blueprint)
 
     @app.shell_context_processor

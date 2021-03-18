@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+</head>
+<body>
+    {% if divisions %}
+        {% for divisionID, values in table.items() %}
+            <h1>{{values["name"]}}</h1>
+            <table>
+                <thead>
+                    <tr>
+                        <th>id</th>
+                        <th>name</th>
+                        <th>played</th>
+                        <th>Win</th>
+                        <th>Draw</th>
+                        <th>Loss</th>
+                        <th>Points</th>
+                    </tr>
+                    <tr>
+
+                    </tr>
+                </thead>
+                {% for team in values["teams"] %}
+                    {% for teamID, teamValues in team.items() %}
+                    <tbody>
+                        <tr>
+                            <td>{{teamID}}</td>
+                            <td>{{teamValues["info"]["name"]}}</td>
+                            <td>{{teamValues["played"]}}</td>
+                            <td>{{teamValues["wins"]}}</td>
+                            <td>{{teamValues["draw"]}}</td>
+                            <td>{{teamValues["loses"]}}</td>
+                            <td>{{teamValues["points"]}}</td>
+                        </tr>
+                    </tbody>
+                    {% endfor %}
+                {% endfor %}
+            </table>
+        {% endfor %}
+
+    {% endif %}
+</body>
+</html>
