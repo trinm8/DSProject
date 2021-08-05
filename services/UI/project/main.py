@@ -247,6 +247,7 @@ def login():
             response = redirect("../loginPortal")
             response.set_cookie('username', loginAttempt.json()["data"]["username"])
             response.set_cookie('password', loginAttempt.json()["data"]["password"])
+            response.set_cookie('id', loginAttempt.json()["data"]["id"])
             return response
         elif loginAttempt.status_code == 404 or loginAttempt.status_code == 403:
             flash(loginAttempt.json()["message"], 'error')
@@ -263,4 +264,6 @@ def loginPortal():
 @ui_blueprint.route('/')
 @login_required
 def editTeam():
+    editform = editTeamInfo(request.form)
+
     pass
