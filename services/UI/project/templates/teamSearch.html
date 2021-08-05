@@ -1,7 +1,9 @@
 {% extends "base.html" %}
 {% block body %}
+
     <form method="post">
         {{ form.csrf_token }}
+        <div>Search for team with ID:</div>
         <div>{{ form.teamID() }}</div>
         <div>{{ form.submit() }}</div>
     </form>
@@ -9,8 +11,11 @@
         <ul>
             {% for team in teams %}
                 <li>
-                    <a href="{{"./%s" %team["id"]}}">
+                    <a href="{{ "./%s" %team["id"] }}">
                         {{ team["name"] }}
+                        {% if team["suffix"] %}
+                            {{ team["suffix"] }}
+                        {% endif %}
                     </a>
                 </li>
             {% endfor %}

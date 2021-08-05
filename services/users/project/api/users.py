@@ -72,6 +72,37 @@ def get_all_users():
     return jsonify(response_object), 200
 
 
+@users_blueprint.route('/users/authenticate', methods=['POST'])
+def authenticate():
+    data = request.get_json()
+    response_object = {
+        'status': 'failed',
+        'message': 'missing or invalid payload'
+    }
+
+    if not data:
+        return jsonify(response_object), 400
+    username, password = data.get('username'), data.get('password')
+    try:
+        response_object = {
+            'status': 'failed'
+        }
+        foundUsers = User.query.filter_by(username=username).all()
+        if not foundUsers:
+            response_object["message"] = 'user not found'
+            return jsonify(response_object), 404
+        for user in foundUsers:
+            if user.password == password:
+                response_object = {
+                    'status': 'success',
+                    'data': user.to_json()
+                }
+                return jsonify(response_object), 200
+        response_object["message"] = "password is incorrect"
+        return jsonify(response_object), 403
+    except Exception as e:
+        raise e
+
 # @users_blueprint.route('/', methods=['GET', 'POST'])
 # def index():
 #     if request.method == 'POST':

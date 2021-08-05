@@ -318,6 +318,51 @@ def compareTeams(team_A, team_B):
         return jsonify(request_object), 404
 
 
+@matches_blueprint.route('/matches/upcoming/<team_id>', methods=['GET'])
+def getNextMatches(team_id):
+    request_object = {
+        'status': 'failed',
+        'message': "request failed\n"
+    }
+    team = requests.get("http://teamsclubs:5000/teams/" + str(team_id))
+    if team.status_code == 200:
+        upcomingMatches = Match.query.with_entities(Match.id, Match.homeTeamID, Match.awayTeamID,
+                                  Match.datetime_as_timestamp).filter(
+            and_(or_(Match.homeTeamID == team.json()["data"]["id"], Match.awayTeamID == team.json()["data"]["id"]),
+                 Match.datetime_as_timestamp > datetime.datetime.now())).order_by(asc(Match.date)).limit(5).all()
+
+        request_object = {
+            'status': 'success',
+            'data': upcomingMatches
+        }
+        return jsonify(request_object), 200
+    elif team.status_code == 404:
+        request_object["message"] = "team does not exist"
+        return jsonify(request_object), 404
+    return jsonify(request_object), 404
+
+@matches_blueprint.route('/matches/previous/<team_id>', methods=['GET'])
+def getPreviousMatches(team_id):
+    request_object = {
+        'status': 'failed',
+        'message': "Request failed\n"
+    }
+    team = requests.get("http://teamsclubs:5000/teams/" + str(team_id))
+    if team.status_code == 200:
+        previousMatches = Match.query.with_entities(Match.id, Match.homeTeamID, Match.awayTeamID,
+                                                    Match.datetime_as_timestamp).filter(
+            and_(or_(Match.homeTeamID == team.json()["data"]["id"], Match.awayTeamID == team.json()["data"]["id"]),
+                 Match.datetime_as_timestamp < datetime.datetime.now())).order_by(desc(Match.date)).limit(3).all()
+        request_object = {
+            'status': 'success',
+            'data': previousMatches
+        }
+        return jsonify(request_object), 200
+    elif team.status_code == 404:
+        request_object["message"] = "team does not exist"
+        return jsonify(request_object), 404
+    return jsonify(request_object), 404
+
 @matches_blueprint.route('/', methods=['GET', 'POST'])
 def index():
     pass

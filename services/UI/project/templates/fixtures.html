@@ -14,16 +14,20 @@
                 <thead>
                     <tr>
                         <th>Home</th>
-                        <th>Result</th>
+                        {% if fixture[1]["passed"] %}
+                            <th>Result</th>
+                        {% else %}
+                            <th>Time</th>
+                        {% endif %}
                         <th>Away</th>
                     </tr>
                 </thead>
                 <tbody>
                     {% for match in fixture[1]["matches"] %}
                         <tr>
-                            <td>{{match["homeTeamID"]}}</td>
+                            <td>{{match["homeTeam"]["name"]}}</td>
                             <td>{{match["result"]}}</td>
-                            <td>{{match["awayTeamID"]}}</td>
+                            <td>{{match["awayTeam"]["name"]}}</td>
                             <td>
                                 <a href="{{'fixture/%s' %match["id"]}}">
                                     details

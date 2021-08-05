@@ -6,19 +6,36 @@
 </head>
 <body>
     {% if fixture %}
+        <h1>{{ fixture["TeamA"]["name"] }} - {{ fixture["TeamB"]["name"] }}</h1>
         <div>Date: {{fixture["date"]}}</div>
         <div>Time: {{fixture["time"]}}</div>
+        {% if fixture["weather"] %}
+            <div>Temperature: {{ fixture["weather"]["temp"]["day"] }}</div>
+            <div>Weather: {{fixture["weather"]["weather"][0]["description"]}}</div>
+        {% endif %}
         <div>Referee: {{fixture["referee"]}}</div>
         {% if fixture["head2headNumber"] %}
+            <br>
             <div>These teams have played {{fixture["head2headNumber"]}} matches against each other before</div>
-            <div>where Team A won: {{fixture["head2headWins"][0]}} games and Team B won: {{fixture["head2headWins"][1]}} games,
+            <div>where {{fixture["TeamA"]["name"]}} won: {{fixture["head2headWins"][0]}} games and {{fixture["TeamB"]["name"]}} won: {{fixture["head2headWins"][1]}} games,
             {% if (fixture["head2headNumber"] - (fixture["head2headWins"][0] + fixture["head2headWins"][1])) > 0 %}
                 Resulting in {{fixture["head2headNumber"] - (fixture["head2headWins"][0] + fixture["head2headWins"][1])}} draws.
             {% endif %}
             </div>
-            <div>{{fixture["historical"]}}</div>
+            <br>
+            {% if fixture["historical"] %}
+                <div>The results of the last 3 times these teams played eachother:</div>
+                <ul>
+                {% for game in fixture["historical"] %}
+                    <li>{{game[0]}}: {{game[1]}} - {{game[2]}} :{{game[3]}}</li>
+                {% endfor %}
+                </ul>
+            {% endif %}
             {% if fixture["currentForm"] %}
-                <div>{{ fixture["currentForm"]}}</div>
+                <div>The results of the last 5 matches both teams played:</div>
+                <div>{{fixture["TeamA"]["name"]}}: {{''.join(fixture["currentForm"][0])}}</div>
+                <div>{{fixture["TeamB"]["name"]}}: {{''.join(fixture["currentForm"][1])}}</div>
+                <br>
             {% endif %}
         {% endif %}
     {% else %}
