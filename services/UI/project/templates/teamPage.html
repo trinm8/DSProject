@@ -6,49 +6,73 @@
 </head>
 <body>
 {% if info %}
-    <h1>{{info["name"]}}</h1>
-    <div>id: {{ info["id"] }}</div>
-    <div>stam_nummer: {{ info["stam_nummer"] }}</div>
-    {% if info["suffix"] %}
-        <div>suffix: {{ info["suffix"] }}</div>
-    {% endif %}
-    <div>colors: {{ info["colors"] }}</div>
-    <div>address: {{ info["address"] }}</div>
-    <div>zipcode: {{ info["zipcode"] }}</div>
-    <div>city: {{ info["city"] }}</div>
-    {% if info["website"] %}
-        <div>website: {{ info["website"] }}</div>
-    {% endif %}
+    {% if not editMode %}
+        <h1>{{info["name"]}}</h1>
+        <div>stam number: {{ info["stam_nummer"] }}</div>
+        {% if info["suffix"] %}
+            <div>suffix: {{ info["suffix"] }}</div>
+        {% endif %}
+        <div>colors: {{ info["colors"] }}</div>
+        <div>address: {{ info["address"] }}</div>
+        <div>zipcode: {{ info["zipcode"] }}</div>
+        <div>city: {{ info["city"] }}</div>
+        {% if info["website"] %}
+            <div>website: {{ info["website"] }}</div>
+        {% endif %}
 
-    <br>
-    <div>Previous matches:</div>
-    {% if previousMatches %}
-        <ul>
-        {% for match in previousMatches %}
+        <br>
+        <div>Previous matches:</div>
+        {% if previousMatches %}
+            <ul>
+            {% for match in previousMatches %}
 
-            <li><a href="{{'../fixture/%s' %match[0]}}">
-                {{ match[-1] }}
-        </a></li>
-        {% endfor %}
-        </ul>
+                <li><a href="{{'../fixture/%s' %match[0]}}">
+                    {{ match[-1] }}
+            </a></li>
+            {% endfor %}
+            </ul>
+        {% else %}
+            <div>No previous matches</div>
+        {% endif %}
+        <br>
+        <div>Upcoming matches:</div>
+        {% if upcomingMatches %}
+            <ul>
+            {% for upcomingMatch in upcomingMatches %}
+
+                <li><a href="{{'../fixture/%s' %upcomingMatch[0]}}">
+                    {{ upcomingMatch[-1] }}
+            </a></li>
+
+            {% endfor %}
+            </ul>
+        {% else %}
+            <div>No upcoming matches</div>
+        {% endif %}
     {% else %}
-        <div>No previous matches</div>
+        <form method="post">
+            {{ form.csrf_token() }}
+            <h1>{{info["name"]}}</h1>
+            <div>id: {{ info["id"] }}</div>
+            <div>stam number: {{ info["stam_nummer"] }}</div>
+            <div>team name: {{form["name"](value=form.name)}}</div>
+            {% if info["suffix"] or form["suffix"] %}
+                <div>suffix: {{ form["suffix"](value=form.suffix) }}</div>
+            {% endif %}
+            <div>colors: {{ form["colors"](value=form.colors)}}</div>
+            <div>address: {{ form["address"](value=form.address) }}</div>
+            <div>zipcode: {{ form["zipcode"](value=form.zipcode) }}</div>
+            <div>city: {{ form["city"](value=form.city) }}</div>
+            {% if info["website"] %}
+                <div>website: {{ form["website"](value=form.website) }}</div>
+            {% endif %}
+            <div>{{form.submit()}}</div>
+            {{ form["id"](value=form.id)}}
+            {{ form["stam_nummer"](value=form.stam_nummer) }}
+        </form>
     {% endif %}
-    <br>
-    <div>Upcoming matches:</div>
-    {% if upcomingMatches %}
-        <ul>
-        {% for upcomingMatch in upcomingMatches %}
 
-            <li><a href="{{'../fixture/%s' %upcomingMatch[0]}}">
-                {{ upcomingMatch[-1] }}
-        </a></li>
 
-        {% endfor %}
-        </ul>
-    {% else %}
-        <div>No upcoming matches</div>
-    {% endif %}
 {% endif %}
 </body>
 </html>

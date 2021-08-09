@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+{% block body %}
+    {% for test,fixture in forms|zip(matches) %}
+        <form method="post">
+            {{ test.csrf_token }}
+            <h1>{{ fixture[-1] }}</h1>
+            <div>
+                <p>Goals your team:{{ test.homeScore(value=fixture[3]) }} - {{ test.awayScore(value=fixture[4]) }}: Goals opposing team</p>
+                <p>{{test.submit()}}</p>
+            </div>
+            {{ test["matchID"] }}
+        </form>
+    {% endfor %}
+{% endblock %}

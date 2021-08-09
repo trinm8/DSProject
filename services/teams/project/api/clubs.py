@@ -77,3 +77,28 @@ def get_all_clubs():
         }
     }
     return jsonify(response_object), 200
+
+@clubs_blueprint.route('/clubs', methods=['PUT'])
+def edit_club():
+    put_data = request.get_json()
+    stam_nummer = put_data.get('stam_nummer')
+    response_object = {
+        'status': "failed",
+        'message': "update failed"
+    }
+    try:
+        club = Club.query.get_or_404(stam_nummer)
+        club.name = put_data.get("name")
+        club.address = put_data.get("address")
+        club.zipcode = put_data.get("zipcode")
+        club.website = put_data.get("website")
+        club.city = put_data.get("city")
+        db.session.commit()
+        response_object = {
+            'status': "success",
+            'message': "update successful"
+        }
+        return jsonify(response_object), 200
+    except exc.IntegrityError as e:
+        db.session.rollback()
+        return jsonify(response_object), 400

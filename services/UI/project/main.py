@@ -1,6 +1,6 @@
 from flask import Blueprint, jsonify, request, render_template, flash, abort, redirect, url_for
 
-from project.forms.fixtureForm import filterFixtureByDivision
+from project.forms.fixtureForm import filterFixtureByDivision, editHomeScores
 from project.forms.teamsForm import teamsSearchForm, editTeamInfo
 from project.forms.LoginForm import LoginForm
 
@@ -247,7 +247,7 @@ def login():
             response = redirect("../loginPortal")
             response.set_cookie('username', loginAttempt.json()["data"]["username"])
             response.set_cookie('password', loginAttempt.json()["data"]["password"])
-            response.set_cookie('id', loginAttempt.json()["data"]["id"])
+            response.set_cookie('id', str(loginAttempt.json()["data"]["id"]))
             return response
         elif loginAttempt.status_code == 404 or loginAttempt.status_code == 403:
             flash(loginAttempt.json()["message"], 'error')
@@ -261,9 +261,61 @@ def login():
 def loginPortal():
     return render_template("loginPortal.html")
 
-@ui_blueprint.route('/')
+@ui_blueprint.route('/editTeam', methods=['GET', 'POST'])
 @login_required
 def editTeam():
     editform = editTeamInfo(request.form)
+    if editform.validate_on_submit():
+        changedData = request.form.to_dict()
+        requests.put("http://teamsclubs:5000/teams/", json=changedData)
+        requests.put("http://teamsclubs:5000/clubs/", json=changedData)
+        return redirect("teams/" + str(editform.id.data) )
 
-    pass
+    userID = request.cookies.get('id')
+    userInfo = requests.get("http://users:5000/users/" + str(userID))
+    if userInfo.status_code != 200:
+        abort(404)
+    teamInfo = requests.get("http://teamsclubs:5000/teamInfo/" + str(userInfo.json()["data"]["team"]))
+    if teamInfo.status_code != 200:
+        abort(404)
+
+    teamInfo = teamInfo.json()["data"]
+    editform.suffix = teamInfo["suffix"]
+    editform.colors = teamInfo["colors"]
+    editform.city = teamInfo["city"]
+    editform.zipcode = teamInfo["zipcode"]
+    editform.address = teamInfo["address"]
+    editform.name = teamInfo["name"]
+    editform.id = teamInfo["id"]
+    editform.stam_nummer = teamInfo["stam_nummer"]
+
+    return render_template("teamPage.html", info=teamInfo, editMode=True, form=editform)
+
+@ui_blueprint.route('/editScores', methods=['GET', 'POST'])
+@login_required
+def editScores():
+    if request.method == 'POST':
+        submittedForm = editHomeScores()
+
+        if submittedForm.validate_on_submit():
+            recievedForm = request.form.to_dict()
+            requests.put("http://matches:5000/matches", json=recievedForm)
+            flash("Match Updated!")
+            return redirect("/editScores")
+        return redirect("/editScores")
+
+    userID = request.cookies.get('id')
+    userInfo = requests.get("http://users:5000/users/" + str(userID))
+    if userInfo.status_code != 200:
+        abort(404)
+
+    previousMatches = requests.get("http://matches:5000/matches/PlayedHomeGames/" + str(userInfo.json()["data"]["team"]))
+    if previousMatches.status_code != 200:
+        abort(404)
+
+    forms = []
+    for match in previousMatches.json()["data"]:
+        forms.append(editHomeScores(matchID=match[0]))
+
+    #return jsonify(previousMatches.json()["data"])
+    return render_template("editHomeScores.html", forms=forms, matches=previousMatches.json()["data"])

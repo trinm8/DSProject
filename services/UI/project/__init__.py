@@ -8,6 +8,7 @@ from flask import Flask
 def create_app(script_info=None):
 
     app = Flask(__name__)
+    app.jinja_env.filters['zip'] = zip
 
     app_settings = os.getenv('APP_SETTINGS')
     app.config.from_object(app_settings)

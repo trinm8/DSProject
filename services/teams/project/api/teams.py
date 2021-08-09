@@ -106,3 +106,26 @@ def get_all_teams():
         }
     }
     return jsonify(response_object), 200
+
+@teams_blueprint.route('/teams', methods=["PUT"])
+def edit_team():
+    "update team Info"
+    response_object = {
+        'status': "failed",
+        'message': "Something went wrong"
+    }
+    put_data = request.get_json()
+    id = put_data.get('id')
+    try:
+        team = Team.query.get_or_404(id)
+        team.colors = put_data.get("colors")
+        team.suffix = put_data.get("suffix")
+        db.session.commit()
+        response_object = {
+            'status': "success",
+            'message': "Team Successfully updated"
+        }
+        return jsonify(response_object), 200
+    except exc.IntegrityError as e:
+        db.session.rollback()
+        return jsonify(response_object), 400

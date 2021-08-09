@@ -45,6 +45,21 @@ def add_match():
         db.session.rollback()
         return jsonify(response_object), 400
 
+@matches_blueprint.route('/matches', methods=['PUT'])
+def update_match():
+    put_data = request.get_json()
+    try:
+        match = Match.query.get_or_404(put_data["matchID"])
+        if put_data.get("homeScore"):
+            match.goalsHome = put_data.get("homeScore")
+        if put_data.get("awayScore"):
+            match.goalsAway = put_data.get("awayScore")
+        db.session.commit()
+        return jsonify({}), 200
+    except exc.IntegrityError as e:
+        db.session.rollback()
+        return jsonify({}), 400
+
 
 @matches_blueprint.route('/matches/<match_id>', methods=['GET'])
 def get_single_match_with_ID(match_id):
@@ -353,6 +368,28 @@ def getPreviousMatches(team_id):
                                                     Match.datetime_as_timestamp).filter(
             and_(or_(Match.homeTeamID == team.json()["data"]["id"], Match.awayTeamID == team.json()["data"]["id"]),
                  Match.datetime_as_timestamp < datetime.datetime.now())).order_by(desc(Match.date)).limit(3).all()
+        request_object = {
+            'status': 'success',
+            'data': previousMatches
+        }
+        return jsonify(request_object), 200
+    elif team.status_code == 404:
+        request_object["message"] = "team does not exist"
+        return jsonify(request_object), 404
+    return jsonify(request_object), 404
+
+@matches_blueprint.route('/matches/PlayedHomeGames/<team_id>')
+def getPlayedHomeGames(team_id):
+    request_object = {
+        'status': 'failed',
+        'message': "Request failed\n"
+    }
+    team = requests.get("http://teamsclubs:5000/teams/" + str(team_id))
+    if team.status_code == 200:
+        previousMatches = Match.query.with_entities(Match.id, Match.homeTeamID, Match.awayTeamID,
+                                                    Match.goalsHome, Match.goalsAway, Match.status, Match.divisionID, Match.assignedRefereeID, Match.datetime_as_timestamp).filter(
+            and_(Match.homeTeamID == team.json()["data"]["id"],
+                 Match.datetime_as_timestamp < datetime.datetime.now())).order_by(desc(Match.date)).all()
         request_object = {
             'status': 'success',
             'data': previousMatches
