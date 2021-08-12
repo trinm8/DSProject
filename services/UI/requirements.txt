@@ -11,3 +11,5 @@ Werkzeug==1.0.1
 requests
 Flask-WTF
 WTForms
+flask-admin
+flask-SQLAlchemy-Session

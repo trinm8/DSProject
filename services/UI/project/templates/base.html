@@ -1,8 +1,10 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <title>Title</title>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+
+    <title>Soccer</title>
 
     <style type="text/css">
         .error {
@@ -10,8 +12,23 @@
         }
     </style>
 
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css" integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm" crossorigin="anonymous">
+
 </head>
     <body>
+
+        <nav class="navbar navbar-light bg-primary">
+            <span class="navbar-brand mb-0 h1">Soccer Site</span>
+            <form class="form-inline">
+                <a class="" href="/">
+                    <button class="btn btn-light" type="button">Main Page</button>
+                </a>
+                <a class="" href="/login">
+                    <button class="btn btn-light" type="button">Login Portal</button>
+                </a>
+            </form>
+        </nav>
+
         {% with messages = get_flashed_messages(with_categories=true) %}
             {% if messages %}
                 {% for category, message in messages %}

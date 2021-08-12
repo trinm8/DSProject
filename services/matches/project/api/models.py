@@ -13,10 +13,10 @@ class Match(db.Model):
     time = db.Column(db.Time, nullable=False)
     awayTeamID = db.Column(db.Integer, nullable=False)
     homeTeamID = db.Column(db.Integer, nullable=False)
-    goalsHome = db.Column(db.Integer, nullable=True)
-    goalsAway = db.Column(db.Integer, nullable=True)
+    goalsHome = db.Column(db.Integer, nullable=False, default=0)
+    goalsAway = db.Column(db.Integer, nullable=False, default=0)
     status = db.Column(db.Integer, nullable=True)
-    divisionID = db.Column(db.Integer, nullable=True)
+    divisionID = db.Column(db.Integer, nullable=False)
     assignedRefereeID = db.Column(db.Integer, nullable=True)
 
     def __init__(self, date, time, awayTeamID, homeTeamID, goalsHome, goalsAway, status, divisionID = None, assignedRefereeID = None):

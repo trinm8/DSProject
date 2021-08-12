@@ -48,13 +48,7 @@ def get_single_user(user_id):
         else:
             response_object = {
                 'status': 'success',
-                'data': {
-                    'id': user.id,
-                    'username': user.username,
-                    'email': user.email,
-                    'active': user.active,
-                    'team': user.team
-                }
+                'data': user.to_json()
             }
             return jsonify(response_object), 200
     except ValueError:
@@ -113,6 +107,7 @@ def authenticate():
 #         db.session.commit()
 #     users = User.query.all()
 #     return render_template('index.html', users=users)
+
 
 
 @users_blueprint.route('/users/ping', methods=['GET'])

@@ -15,7 +15,6 @@ def page_not_found(error):
     return render_template('404.html', title='404'), 404
 
 
-
 def convertMatchTimeStrToDateTime(date, time):
     matchDate = datetime.datetime.combine(datetime.datetime.strptime(date, "%a, %d %b %Y %H:%M:%S %Z").date(),
                                           datetime.datetime.strptime(time, "%H:%M:%S").time())
@@ -39,7 +38,6 @@ def leagueTables():
             }
         matches = requests.get("http://matches:5000/matches/leagueTable")
         if matches.status_code != 200:
-            print(matches.json()["message"])
             return render_template('leagueTables.html', divisions=None)
         for key, value in matches.json()["data"].items():
             table[int(key)]["teams"].append(value)
@@ -186,8 +184,8 @@ def specific_fixture(match_id):
                 resultObject["historical"] = historical
                 resultObject["currentForm"] = comparingData.json()["data"]["currentForm"]
         if matchdate > datetime.datetime.now() and matchdate < datetime.datetime.now() + datetime.timedelta(days=7):
-            days = ((datetime.datetime.now() + datetime.timedelta(days=7)) - matchdate).days
-            weather = requests.get("https://api.openweathermap.org/data/2.5/onecall?lat=0&lon=0&units=metric&exclude=current,minutely,hourly&appid=60c17e865997f70b0eafb801886a4af6")
+            days = (matchdate - (datetime.datetime.now())).days
+            weather = requests.get("https://api.openweathermap.org/data/2.5/onecall?lat=51.2194&lon=4.4025&units=metric&exclude=current,minutely,hourly&appid=60c17e865997f70b0eafb801886a4af6")
             if weather.status_code == 200:
                 weatherdata = weather.json()
                 resultObject["weather"] = weatherdata["daily"][days]
@@ -228,38 +226,47 @@ def teamPage(team_id):
 
 @ui_blueprint.route('/login', methods=['GET', 'POST'])
 def login():
-    if request.cookies.get('username'):
-        loginData = {
-            'username': str(request.cookies.get('username')),
-            'password': str(request.cookies.get('password'))
-        }
-        loginAttempt = requests.post('http://users:5000/users/authenticate', json=loginData)
-        if loginAttempt.status_code == 200:
-            return redirect("loginPortal")
-    loginForm = LoginForm(request.form)
-    if loginForm.validate_on_submit():
-        loginData = {
-                    'username': str(loginForm.username.data),
-                    'password': str(loginForm.password.data)
-                     }
-        loginAttempt = requests.post('http://users:5000/users/authenticate', json=loginData)
-        if loginAttempt.status_code == 200:
-            response = redirect("../loginPortal")
-            response.set_cookie('username', loginAttempt.json()["data"]["username"])
-            response.set_cookie('password', loginAttempt.json()["data"]["password"])
-            response.set_cookie('id', str(loginAttempt.json()["data"]["id"]))
-            return response
-        elif loginAttempt.status_code == 404 or loginAttempt.status_code == 403:
-            flash(loginAttempt.json()["message"], 'error')
-            return render_template("login.html", form=loginForm, message=loginAttempt.json()["message"])
-        else:
-            print("test")
-    return render_template("login.html", form=loginForm)
+    try:
+        if request.cookies.get('username'):
+            loginData = {
+                'username': str(request.cookies.get('username')),
+                'password': str(request.cookies.get('password'))
+            }
+            loginAttempt = requests.post('http://users:5000/users/authenticate', json=loginData)
+            if loginAttempt.status_code == 200:
+                return redirect("loginPortal")
+        loginForm = LoginForm(request.form)
+        if loginForm.validate_on_submit():
+            loginData = {
+                        'username': str(loginForm.username.data),
+                        'password': str(loginForm.password.data)
+                         }
+            loginAttempt = requests.post('http://users:5000/users/authenticate', json=loginData)
+            if loginAttempt.status_code == 200:
+                response = redirect("../loginPortal")
+                response.set_cookie('username', loginAttempt.json()["data"]["username"])
+                response.set_cookie('password', loginAttempt.json()["data"]["password"])
+                response.set_cookie('id', str(loginAttempt.json()["data"]["id"]))
+                return response
+            elif loginAttempt.status_code == 404 or loginAttempt.status_code == 403:
+                flash(loginAttempt.json()["message"], 'error')
+                return render_template("login.html", form=loginForm, message=loginAttempt.json()["message"])
+            else:
+                print("test")
+        return render_template("login.html", form=loginForm)
+    except requests.exceptions.ConnectionError:
+        abort(503)
 
 @ui_blueprint.route('/loginPortal', methods=['GET', 'POST'])
 @login_required
 def loginPortal():
-    return render_template("loginPortal.html")
+    try:
+        user = requests.get("http://users:5000/users/" + str(request.cookies.get('id')))
+        if user.status_code == 200 and user.json()["data"]["admin"] == True:
+            return render_template("loginPortal.html", admin=True)
+        return render_template("loginPortal.html", admin=False)
+    except requests.exceptions.ConnectionError as e:
+        abort(503)
 
 @ui_blueprint.route('/editTeam', methods=['GET', 'POST'])
 @login_required
@@ -315,7 +322,11 @@ def editScores():
 
     forms = []
     for match in previousMatches.json()["data"]:
-        forms.append(editHomeScores(matchID=match[0]))
+        opposingTeamInfo = requests.get("http://teamsclubs:5000/teamInfo/" + str(match[2]))
+        if opposingTeamInfo.status_code == 200:
+            forms.append(editHomeScores(matchID=match[0],opposingTeamName=opposingTeamInfo.json()["data"]["name"]))
+        else:
+            forms.append(editHomeScores(matchID=match[0]))
 
     #return jsonify(previousMatches.json()["data"])
     return render_template("editHomeScores.html", forms=forms, matches=previousMatches.json()["data"])

@@ -8,7 +8,7 @@ referees_blueprint = Blueprint('referees', __name__, template_folder='./template
 
 
 @referees_blueprint.route('/referees', methods=['POST'])
-def add_team():
+def add_referee():
     post_data = request.get_json()
     response_object = {
         'status': 'fail',

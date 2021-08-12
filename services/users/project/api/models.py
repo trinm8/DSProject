@@ -16,15 +16,17 @@ class User(db.Model):
     password = db.Column(db.String(128), nullable=False)
     team = db.Column(db.String(128), nullable=False)
     admin = db.Column(db.Boolean, nullable=False, default=False)
+    superAdmin = db.Column(db.Boolean, nullable=False, default=False)
 
-    def __init__(self, username, email, password, team, admin):
+    def __init__(self, username, email, password, team, admin, superAdmin):
         self.username = username
         self.email = email
         self.active = False
         self.created_date = datetime.datetime.now()
         self.password = password
         self.team = team
-        self.admin = admin
+        self.admin = bool(admin)
+        self.superAdmin = bool(superAdmin)
 
     def to_json(self):
         return {
@@ -35,5 +37,6 @@ class User(db.Model):
             'created date': self.created_date,
             'password': self.password,
             'team': self.team,
-            'admin': self.admin
+            'admin': self.admin,
+            'superAdmin': self.superAdmin
         }

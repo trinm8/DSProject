@@ -1,10 +1,5 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>Title</title>
-</head>
-<body>
+{% extends "base.html" %}
+{% block body %}
     {% if fixture %}
         <h1>{{ fixture["TeamA"]["name"] }} - {{ fixture["TeamB"]["name"] }}</h1>
         <div>Date: {{fixture["date"]}}</div>
@@ -41,5 +36,4 @@
     {% else %}
         <div>Match doesnt exist</div>
     {% endif %}
-</body>
-</html>
+{% endblock %}

@@ -1,23 +1,20 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>Title</title>
-</head>
-<body>
+{% extends "base.html" %}
+{% block body %}
+    <div class="row justify-content-center">
     {% if divisions %}
         {% for divisionID, values in table.items() %}
+            <div class="col-auto">
             <h1>{{values["name"]}}</h1>
-            <table>
-                <thead>
+            <table class="table">
+                <thead class="thead-dark">
                     <tr>
-                        <th>id</th>
-                        <th>name</th>
-                        <th>played</th>
-                        <th>Win</th>
-                        <th>Draw</th>
-                        <th>Loss</th>
-                        <th>Points</th>
+                        <th scope="col">id</th>
+                        <th scope="col">name</th>
+                        <th scope="col">played</th>
+                        <th scope="col">Win</th>
+                        <th scope="col">Draw</th>
+                        <th scope="col">Loss</th>
+                        <th scope="col">Points</th>
                     </tr>
                     <tr>
 
@@ -39,8 +36,8 @@
                     {% endfor %}
                 {% endfor %}
             </table>
+            </div>
         {% endfor %}
-
     {% endif %}
-</body>
-</html>
+    </div>
+{% endblock %}

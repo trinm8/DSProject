@@ -12,4 +12,5 @@ class editHomeScores(FlaskForm):
     homeScore = IntegerField('homeScore', validators=[InputRequired()])
     awayScore = IntegerField('awayScore', validators=[InputRequired()])
     matchID = HiddenField()
+    opposingTeamName = HiddenField()
     submit = SubmitField('Submit')

@@ -120,3 +120,8 @@ services:
     environment:
       - FLASK_ENV=development
       - APP_SETTINGS=project.config.DevelopmentConfig
+    depends_on:
+      - matches
+      - users
+      - teamsclubs
+      - referee

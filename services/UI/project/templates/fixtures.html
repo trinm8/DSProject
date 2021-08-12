@@ -8,36 +8,41 @@
             <div>{{form.submit()}}</div>
         </form>
         {% if fixtures %}
+            <div class="row justify-content-center">
             {% for fixture in fixtures %}
-            <h1>{{ fixture[0].date().strftime("%a, %d %B %Y") }}</h1>
-            <table>
-                <thead>
-                    <tr>
-                        <th>Home</th>
-                        {% if fixture[1]["passed"] %}
-                            <th>Result</th>
-                        {% else %}
-                            <th>Time</th>
-                        {% endif %}
-                        <th>Away</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for match in fixture[1]["matches"] %}
-                        <tr>
-                            <td>{{match["homeTeam"]["name"]}}</td>
-                            <td>{{match["result"]}}</td>
-                            <td>{{match["awayTeam"]["name"]}}</td>
-                            <td>
-                                <a href="{{'fixture/%s' %match["id"]}}">
-                                    details
-                                </a>
-                            </td>
-                        </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
+                <div class="col-5">
+                    <h1>{{ fixture[0].date().strftime("%a, %d %B %Y") }}</h1>
+                    <table class="table">
+                        <thead class="thead-dark">
+                            <tr>
+                                <th scope="col">Home</th>
+                                {% if fixture[1]["passed"] %}
+                                    <th scope="col">Result</th>
+                                {% else %}
+                                    <th scope="col">Time</th>
+                                {% endif %}
+                                <th scope="col">Away</th>
+                                <th scope="col"></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for match in fixture[1]["matches"] %}
+                                <tr>
+                                    <td>{{match["homeTeam"]["name"]}}</td>
+                                    <td>{{match["result"]}}</td>
+                                    <td>{{match["awayTeam"]["name"]}}</td>
+                                    <td>
+                                        <a href="{{'fixture/%s' %match["id"]}}">
+                                            details
+                                        </a>
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
             {% endfor %}
+            </div>
         {% endif %}
     {% endif %}
 

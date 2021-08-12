@@ -3,7 +3,12 @@
     <a href="editTeam">
         <button>Edit team info</button>
     </a>
-        <a href="editScores">
+    <a href="editScores">
         <button>Edit scores of home games</button>
     </a>
+    {% if admin %}
+        <a href="admin">
+            <button>Admin Menu</button>
+        </a>
+    {% endif %}
 {% endblock %}

@@ -35,8 +35,7 @@ def seed_db():
         reader = csv.reader(file, delimiter=',')
         next(reader)
         for row in reader:
-            row[-1] = bool(row[-1])
-            db.session.add(User(*row))
+            db.session.add(User(username=row[0], email=row[1], password=row[2], team=row[3], admin=bool(int(row[4])), superAdmin=bool(int(row[5]))))
     db.session.commit()
 
 

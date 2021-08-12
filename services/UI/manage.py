@@ -1,9 +1,11 @@
 import unittest
 
 from flask.cli import FlaskGroup
+from flask import g
 
 from project import create_app
 # from project.api.models import User
+from sqlalchemy import exc
 
 app = create_app()
 cli = FlaskGroup(create_app=create_app)

@@ -1,5 +1,6 @@
 from flask import Blueprint, jsonify, request
 from sqlalchemy import exc, or_, func, and_, desc, asc, Date, Time, cast
+from flask_admin.contrib.sqla import ModelView
 
 from project.api.models import Match
 from project import db
@@ -59,7 +60,6 @@ def update_match():
     except exc.IntegrityError as e:
         db.session.rollback()
         return jsonify({}), 400
-
 
 @matches_blueprint.route('/matches/<match_id>', methods=['GET'])
 def get_single_match_with_ID(match_id):
@@ -399,6 +399,20 @@ def getPlayedHomeGames(team_id):
         request_object["message"] = "team does not exist"
         return jsonify(request_object), 404
     return jsonify(request_object), 404
+
+@matches_blueprint.route('/matches/assignedReferees', methods=['GET'])
+def assignedReferees():
+    args = request.args
+    date = args['date']
+    busyReferees = Match.query.with_entities(Match.assignedRefereeID).filter(Match.date == date).all()
+    ids = []
+    for match in busyReferees:
+        ids.append(match[0])
+    response_object = {
+        'status': "succes",
+        'data': ids
+    }
+    return jsonify(response_object), 200
 
 @matches_blueprint.route('/', methods=['GET', 'POST'])
 def index():
