@@ -1,17 +1,14 @@
 import os
 
-from flask import Flask, abort, g, url_for
+from flask import Flask
 from flask_admin import Admin
-from flask_admin.contrib.sqla import ModelView
 from flask_admin.menu import MenuLink
-from project.adminViews import ModelViewAuthorized, ModelViewAuthorizedSuperAdmin, ModelViewAuthorizedMatches
+from project.api.adminViews import ModelViewAuthorized, ModelViewAuthorizedSuperAdmin, ModelViewAuthorizedMatches
 from flask_sqlalchemy import SQLAlchemy
 from flask_sqlalchemy_session import flask_scoped_session
 from sqlalchemy import create_engine, MetaData, Table
-from sqlalchemy.orm import sessionmaker, scoped_session
+from sqlalchemy.orm import sessionmaker
 from sqlalchemy.ext.declarative import declarative_base
-
-import requests
 
 db = SQLAlchemy()
 
@@ -89,7 +86,7 @@ def create_app(script_info=None):
 
     db.init_app(app)
 
-    from project.main import ui_blueprint
+    from project.api.main import ui_blueprint
     app.register_blueprint(ui_blueprint)
 
     @app.shell_context_processor

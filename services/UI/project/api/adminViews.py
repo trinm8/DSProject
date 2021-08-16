@@ -1,9 +1,6 @@
-from flask import redirect, url_for, request, flash
-from flask_admin import Admin
+from flask import redirect, url_for, request
 from flask_admin.contrib.sqla import ModelView
 from wtforms import validators
-
-from project.decorators import login_required
 
 import requests
 

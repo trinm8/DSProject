@@ -1,10 +1,10 @@
-from flask import Blueprint, jsonify, request, render_template, flash, abort, redirect, url_for
+from flask import Blueprint, request, render_template, flash, abort, redirect
 
 from project.forms.fixtureForm import filterFixtureByDivision, editHomeScores
 from project.forms.teamsForm import teamsSearchForm, editTeamInfo
 from project.forms.LoginForm import LoginForm
 
-from project.decorators import login_required
+from project.api.decorators import login_required
 
 import requests, datetime
 
