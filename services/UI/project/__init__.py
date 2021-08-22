@@ -6,7 +6,7 @@ from flask_admin.menu import MenuLink
 from project.api.adminViews import ModelViewAuthorized, ModelViewAuthorizedSuperAdmin, ModelViewAuthorizedMatches
 from flask_sqlalchemy import SQLAlchemy
 from flask_sqlalchemy_session import flask_scoped_session
-from sqlalchemy import create_engine, MetaData, Table
+from sqlalchemy import create_engine, MetaData, Table, Column
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.ext.declarative import declarative_base
 

@@ -252,7 +252,8 @@ def login():
                 flash(loginAttempt.json()["message"], 'error')
                 return render_template("login.html", form=loginForm, message=loginAttempt.json()["message"])
             else:
-                print("test")
+                flash(loginAttempt.json()["message"], 'error')
+                return render_template("login.html", form=loginForm, message=loginAttempt.json()["message"])
         return render_template("login.html", form=loginForm)
     except requests.exceptions.ConnectionError:
         abort(503)

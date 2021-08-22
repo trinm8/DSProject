@@ -49,7 +49,7 @@ def get_division(division_id):
             response_object = {
                 'status': 'success',
                 'data': {
-                    'id': division.id,
+                    'id': division.id_division,
                     'name': division.name
                 }
             }
