@@ -109,7 +109,7 @@ def get_all_teams():
 
 @teams_blueprint.route('/teams', methods=["PUT"])
 def edit_team():
-    "update team Info"
+    """update team Info"""
     response_object = {
         'status': "failed",
         'message': "Something went wrong"

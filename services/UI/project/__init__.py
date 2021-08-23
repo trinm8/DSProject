@@ -72,6 +72,9 @@ def create_app(script_info=None):
 
         finalSession = flask_scoped_session(session, app)
 
+        teamsEngine.execute("SELECT setval('teams_id_seq', (SELECT MAX(id) FROM teams));")
+        teamsEngine.execute("SELECT setval('divisions_id_division_seq', (SELECT MAX(id_division) FROM divisions));")
+
         admin.add_view(ModelViewAuthorizedMatches(Matches, finalSession))
         admin.add_view(ModelViewAuthorized(Teams, finalSession, category="Teams"))
         admin.add_view(ModelViewAuthorized(Clubs, finalSession, category="Teams"))

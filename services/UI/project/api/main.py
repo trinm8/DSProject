@@ -1,4 +1,4 @@
-from flask import Blueprint, request, render_template, flash, abort, redirect
+from flask import Blueprint, request, render_template, flash, abort, redirect, jsonify
 
 from project.forms.fixtureForm import filterFixtureByDivision, editHomeScores
 from project.forms.teamsForm import teamsSearchForm, editTeamInfo
@@ -28,7 +28,10 @@ def index():
 @ui_blueprint.route('/LeagueTables', methods=['GET'])
 def leagueTables():
     table = {}
-    divisions = requests.get("http://teamsclubs:5000/divisions")
+    try:
+        divisions = requests.get("http://teamsclubs:5000/divisions")
+    except requests.exceptions.ConnectionError:
+        return render_template('leagueTables.html', divisions=None)
     if divisions.status_code == 200:
         for division in divisions.json()["data"]["divisions"]:
             table[division["id"]] = {
@@ -57,26 +60,45 @@ def fixtures():
             if team.status_code != 200:
                 flash(team.json()["message"], 'error')
                 return render_template('fixtures.html', form=form)
-            matches = requests.get("http://matches:5000/matches/division/" + str(form.divisionID.data) + "/team/" + str(form.teamID.data))
+            try:
+                matches = requests.get("http://matches:5000/matches/division/" + str(form.divisionID.data) + "/team/" + str(form.teamID.data))
+            except requests.exceptions.ConnectionError:
+                return render_template('fixtures.html', form=form)
         else:
-            matches = requests.get("http://matches:5000/matches/division/" + str(form.divisionID.data))
+            try:
+                matches = requests.get("http://matches:5000/matches/division/" + str(form.divisionID.data))
+            except requests.exceptions.ConnectionError:
+                return render_template('fixtures.html', form=form)
         if matches.status_code == 404:
             flash(matches.json()["message"], 'error')
             return render_template('fixtures.html', form=form)
 
         teamInfo = {}
-
+        connectionfailed = False
         for match in matches.json()["data"]["matches"]:
             for id in [match["homeTeamID"], match["awayTeamID"]]:
                 if id not in teamInfo:
-                    name = requests.get("http://teamsclubs:5000/teamInfo/" + str(id))
-                    if name.status_code == 200:
-                        teamInfo[id] = name.json()["data"]
-
+                    if connectionfailed:
+                        teamInfo[id] = None
+                        continue
+                    try:
+                        name = requests.get("http://teamsclubs:5000/teamInfo/" + str(id))
+                        if name.status_code == 200:
+                            teamInfo[id] = name.json()["data"]
+                    except requests.exceptions.ConnectionError:
+                        teamInfo[id] = None
+                        connectionfailed = True
 
         for match in matches.json()["data"]["matches"]:
-            match["homeTeam"] = teamInfo[match["homeTeamID"]]
-            match["awayTeam"] = teamInfo[match["awayTeamID"]]
+            if teamInfo[match["homeTeamID"]]:
+                match["homeTeam"] = teamInfo[match["homeTeamID"]]
+            else:
+                match["homeTeam"] = None
+
+            if teamInfo[match["awayTeamID"]]:
+                match["awayTeam"] = teamInfo[match["awayTeamID"]]
+            else:
+                match["awayTeam"] = None
             if datetime.datetime.strptime(match["date"], "%a, %d %b %Y %H:%M:%S %Z") not in fixtures:
                 fixtures[datetime.datetime.strptime(match["date"], "%a, %d %b %Y %H:%M:%S %Z")] = {
                     "matches": [match]
@@ -101,24 +123,47 @@ def fixtures():
 
 @ui_blueprint.route('/divisionRankings', methods=['GET'])
 def division_rankings():
-    divisions = requests.get("http://matches:5000/matches/ranking")
+    try:
+        divisions = requests.get("http://matches:5000/matches/ranking")
+    except requests.exceptions.ConnectionError:
+        return render_template('divisionRankings.html')
     if divisions.status_code == 200:
         finishedProperly = True
+        connectionFailedTeams, connectionFailedDivisions = False, False
         divisions = divisions.json()["data"]
         for divisionID, division in divisions.items():
             for result in division.values():
-                name = requests.get(str("http://teamsclubs:5000/teamInfo/" + str(result[0])))
-                if name.status_code == 200:
-                    result[0] = name.json()["data"]["name"]
-                else:
+                if connectionFailedTeams:
+                    result[0] = "Team with ID: " + str(result[0])
+                    continue
+                try:
+                    name = requests.get(str("http://teamsclubs:5000/teamInfo/" + str(result[0])))
+                    if name.status_code == 200:
+                        result[0] = name.json()["data"]["name"]
+                    else:
+                        result[0] = "Team with ID: " + str(result[0])
+                        finishedProperly = False
+                except requests.exceptions.ConnectionError:
                     result[0] = "Team with ID: " + str(result[0])
                     finishedProperly = False
-            divisionName = requests.get("http://teamsclubs:5000/divisions/"+str(divisionID))
-            if divisionName.status_code == 200:
-                division["name"] = divisionName.json()["data"]["name"]
-            else:
+                    connectionFailedTeams = True
+            if connectionFailedDivisions:
                 division["name"] = "Division with ID: " + divisionID
                 finishedProperly = False
+                connectionFailedDivisions = True
+                continue
+
+            try:
+                divisionName = requests.get("http://teamsclubs:5000/divisions/"+str(divisionID))
+                if divisionName.status_code == 200:
+                    division["name"] = divisionName.json()["data"]["name"]
+                else:
+                    division["name"] = "Division with ID: " + divisionID
+                    finishedProperly = False
+            except:
+                division["name"] = "Division with ID: " + divisionID
+                finishedProperly = False
+                connectionFailedDivisions = True
         if not finishedProperly:
             flash("Something went wrong with fetching the data. Resulting data might be substituted with IDs", 'error')
         return render_template('divisionRankings.html', divisions=divisions)
@@ -128,9 +173,12 @@ def division_rankings():
 @ui_blueprint.route('/fixture/<match_id>', methods=['GET'])
 def specific_fixture(match_id):
     resultObject = {}
-    specificMatch = requests.get("http://matches:5000/matches/" + str(match_id))
+    try:
+        specificMatch = requests.get("http://matches:5000/matches/" + str(match_id))
+    except requests.exceptions.ConnectionError:
+        flash("Something went wrong please try again later", 'error')
+        return render_template('individualFixture.html')
     if specificMatch.status_code == 200:
-
         homeInfo = requests.get("http://teamsclubs:5000/teamInfo/" + str(specificMatch.json()["data"]["homeTeamID"]))
         if homeInfo.status_code == 200:
             resultObject["TeamA"] = homeInfo.json()["data"]
@@ -215,13 +263,25 @@ def specific_fixture(match_id):
 @ui_blueprint.route('/teams/', methods=['GET', 'POST'])
 def team_search():
     form = teamsSearchForm(request.form)
-    teams = requests.get("http://teamsclubs:5000/teams")
+    connectionFailed = False
+    try:
+        teams = requests.get("http://teamsclubs:5000/teams")
+    except requests.exceptions.ConnectionError:
+        return render_template('teamSearch.html', form=form)
     if teams.status_code == 200:
         teams = teams.json()["data"]["teams"]
+        connectionFailed = False
         for i in range(len(teams)):
-            info = requests.get("http://teamsclubs:5000/teamInfo/" + str(teams[i]["id"]))
-            if info.status_code == 200:
-                teams[i] = info.json()["data"]
+            if connectionFailed:
+                teams.pop(i)
+                continue
+            try:
+                info = requests.get("http://teamsclubs:5000/teamInfo/" + str(teams[i]["id"]))
+                if info.status_code == 200:
+                    teams[i] = info.json()["data"]
+            except requests.exceptions.ConnectionError:
+                teams.pop(i)
+                connectionFailed = True
     else:
         teams = []
     if form.validate_on_submit():
@@ -231,9 +291,12 @@ def team_search():
 
 @ui_blueprint.route('/teams/<team_id>', methods=['GET'])
 def teamPage(team_id):
-    info = requests.get("http://teamsclubs:5000/teamInfo/" + str(team_id))
-    if info.status_code == 200:
+    try:
+        info = requests.get("http://teamsclubs:5000/teamInfo/" + str(team_id))
+    except:
+        return render_template('teamPage.html')
 
+    if info.status_code == 200:
         upcomingMatches = requests.get("http://matches:5000/matches/upcoming/" + str(team_id))
         previousMatches = requests.get("http://matches:5000/matches/previous/" + str(team_id))
         if upcomingMatches.status_code != 200 and previousMatches.status_code != 200:
@@ -358,6 +421,7 @@ def editScores():
         except requests.exceptions.ConnectionError:
             forms.append(editHomeScores(matchID=match[0]))
             validConnection = False
+
 
     #return jsonify(previousMatches.json()["data"])
     return render_template("editHomeScores.html", forms=forms, matches=previousMatches.json()["data"])

@@ -19,7 +19,7 @@ def add_division():
     id = post_data.get('id')
     name = post_data.get('name')
     try:
-        division = Division.query.filter_by(id=id, name=name).first()
+        division = Division.query.filter_by(id_division=id, name=name).first()
         if not division:
             db.session.add(Division(id=id, name=name))
             db.session.commit()
@@ -42,7 +42,7 @@ def get_division(division_id):
         'message': 'division doesnt exist'
     }
     try:
-        division = Division.query.filter_by(id=int(division_id)).first()
+        division = Division.query.filter_by(id_division=int(division_id)).first()
         if not division:
             return jsonify(response_object), 404
         else:

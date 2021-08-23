@@ -28,9 +28,20 @@
                         <tbody>
                             {% for match in fixture[1]["matches"] %}
                                 <tr>
-                                    <td>{{match["homeTeam"]["name"]}}</td>
+                                    {% if match["homeTeam"] %}
+                                        <td>{{match["homeTeam"]["name"]}}</td>
+                                    {% else %}
+                                        <td>Team with ID: {{match["homeTeamID"]}}</td>
+                                    {% endif %}
+
                                     <td>{{match["result"]}}</td>
-                                    <td>{{match["awayTeam"]["name"]}}</td>
+
+                                    {% if match["awayTeam"] %}
+                                        <td>{{match["awayTeam"]["name"]}}</td>
+                                    {% else %}
+                                        <td>Team with ID: {{match["awayTeamID"]}}</td>
+                                    {% endif %}
+
                                     <td>
                                         <a href="{{'fixture/%s' %match["id"]}}">
                                             details
@@ -43,6 +54,8 @@
                 </div>
             {% endfor %}
             </div>
+        {% else %}
+            <div>No fixtures found</div>
         {% endif %}
     {% endif %}
 

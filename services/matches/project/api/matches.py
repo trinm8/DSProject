@@ -100,19 +100,27 @@ def get_matches_from_division(division_id):
     request_object = {
         'status': 'failed'
     }
-    division = requests.get("http://teamsclubs:5000/divisions/" + str(division_id))
-    if not division:
+    try:
+        division = requests.get("http://teamsclubs:5000/divisions/" + str(division_id))
+        if division.status_code == 404:
+            request_object["message"] = "Division doesn't exist"
+            return jsonify(request_object), 404
+    except requests.exceptions.ConnectionError:
+        pass
+    try:
+        matches = Match.query.filter_by(divisionID=division_id).all()
+        request_object["data"] = {
+            "matches": [match.to_json() for match in matches]
+        }
+        request_object["status"] = "success"
+        return jsonify(request_object), 200
+    except ValueError:
         request_object["message"] = "Division doesn't exist"
         return jsonify(request_object), 404
-    matches = Match.query.filter_by(divisionID=division_id).all()
-    request_object["data"] = {}
-    request_object["data"]["matches"] = [match.to_json() for match in matches]
-    return jsonify(request_object), 200
-
 
 @matches_blueprint.route('/matches/division/<division_id>/team/<team_id>', methods=['GET'])
 def get_matches_from_division_filtered_on_team(division_id, team_id):
-    """get matches with from a specific division"""
+    """get matches with from a specific division and team"""
     request_object = {
         'status': 'failed'
     }
@@ -120,11 +128,15 @@ def get_matches_from_division_filtered_on_team(division_id, team_id):
     if not division:
         request_object["message"] = "Division doesn't exist"
         return jsonify(request_object), 404
-    matches = Match.query.filter(Match.divisionID == division_id,
-                                 or_(Match.awayTeamID == team_id, Match.homeTeamID == team_id)).all()
-    request_object["data"] = {}
-    request_object["data"]["matches"] = [match.to_json() for match in matches]
-    return jsonify(request_object), 200
+    try:
+        matches = Match.query.filter(Match.divisionID == division_id,
+                                     or_(Match.awayTeamID == team_id, Match.homeTeamID == team_id)).all()
+        request_object["data"] = {}
+        request_object["data"]["matches"] = [match.to_json() for match in matches]
+        return jsonify(request_object), 200
+    except ValueError:
+        request_object["message"] = "The given division and/or team doesn't exist"
+        return jsonify(request_object), 404
 
 
 @matches_blueprint.route('/matches/ranking', methods=['GET'])
@@ -168,7 +180,7 @@ def get_division_ranking():
     response_object["data"] = returnObject
     return jsonify(response_object), 200
 
-
+#TODO: FIX teamInfo requests
 @matches_blueprint.route('/matches/leagueTable', methods=['GET'])
 def get_league_table():
     """Get division tables"""
@@ -232,22 +244,23 @@ def get_league_table():
     return jsonify(request_object), 200
 
 
-@matches_blueprint.route('/compareTeams/<team_A>&<team_B>')
+@matches_blueprint.route('/compareTeams/<team_A>&<team_B>', methods=['GET'])
 def compareTeams(team_A, team_B):
     request_object = {
         'status': 'failed',
         'message': "request failed\n"
     }
     success = True
-    team_A = requests.get("http://teamsclubs:5000/teams/" + str(team_A))
-    if team_A.status_code != 200:
+    team_ARes = requests.get("http://teamsclubs:5000/teams/" + str(team_A))
+    if team_ARes.status_code != 200:
         request_object["message"] += "Team A could not be found\n"
         success = False
 
-    team_B = requests.get("http://teamsclubs:5000/teams/" + str(team_B))
-    if team_B.status_code != 200:
+    team_BRes = requests.get("http://teamsclubs:5000/teams/" + str(team_B))
+    if team_BRes.status_code != 200:
         request_object["message"] += "Team B could not be found\n"
         success = False
+
 
     if not success:
         if not Match.query.filter_by(homeTeamID=team_A).all() and not Match.query.filter_by(awayTeamID=team_A).all():
@@ -257,23 +270,23 @@ def compareTeams(team_A, team_B):
 
     response_object = {}
     response_object["head2headNumber"] = Match.query.filter(and_(
-        or_(and_(Match.homeTeamID == team_A.json()["data"]["id"], Match.awayTeamID == team_B.json()["data"]["id"]),
-            and_(Match.awayTeamID == team_A.json()["data"]["id"],
-                 Match.homeTeamID == team_B.json()["data"]["id"])),
+        or_(and_(Match.homeTeamID == team_A, Match.awayTeamID == team_B),
+            and_(Match.awayTeamID == team_A,
+                 Match.homeTeamID == team_B)),
         Match.datetime_as_timestamp < datetime.datetime.now())).count()
 
     response_object["wins"] = (Match.query.filter(and_(
-        or_(and_(Match.homeTeamID == team_A.json()["data"]["id"], Match.awayTeamID == team_B.json()["data"]["id"],
+        or_(and_(Match.homeTeamID == team_A, Match.awayTeamID == team_B,
                  Match.goalsHome > Match.goalsAway),
-            and_(Match.awayTeamID == team_A.json()["data"]["id"],
-                 Match.homeTeamID == team_B.json()["data"]["id"], Match.goalsAway > Match.goalsHome))),
+            and_(Match.awayTeamID == team_A,
+                 Match.homeTeamID == team_B, Match.goalsAway > Match.goalsHome))),
         Match.datetime_as_timestamp < datetime.datetime.now()).count(),
                                Match.query.filter(and_(
-                                   or_(and_(Match.homeTeamID == team_A.json()["data"]["id"],
-                                            Match.awayTeamID == team_B.json()["data"]["id"],
+                                   or_(and_(Match.homeTeamID == team_A,
+                                            Match.awayTeamID == team_B,
                                             Match.goalsHome < Match.goalsAway),
-                                       and_(Match.awayTeamID == team_A.json()["data"]["id"],
-                                            Match.homeTeamID == team_B.json()["data"]["id"],
+                                       and_(Match.awayTeamID == team_A,
+                                            Match.homeTeamID == team_B,
                                             Match.goalsAway < Match.goalsHome))),
                                    Match.datetime_as_timestamp < datetime.datetime.now()).count()
                                )
@@ -281,26 +294,26 @@ def compareTeams(team_A, team_B):
     response_object["historicalCombined"] = Match.query.with_entities(Match.homeTeamID, Match.goalsHome,
                                                                       Match.goalsAway, Match.awayTeamID).filter(
         and_(
-            or_(and_(Match.homeTeamID == team_A.json()["data"]["id"],
-                     Match.awayTeamID == team_B.json()["data"]["id"]),
-                and_(Match.awayTeamID == team_A.json()["data"]["id"],
-                     Match.homeTeamID == team_B.json()["data"]["id"])),
+            or_(and_(Match.homeTeamID == team_A,
+                     Match.awayTeamID == team_B),
+                and_(Match.awayTeamID == team_A,
+                     Match.homeTeamID == team_B)),
             Match.datetime_as_timestamp < datetime.datetime.now())).order_by(desc(Match.date),
                                                                              desc(Match.time)).limit(3).all()
 
     currentForm = (
     Match.query.with_entities(Match.homeTeamID, Match.goalsHome, Match.goalsAway, Match.awayTeamID, Match.datetime_as_timestamp).filter(
-        and_(or_(Match.homeTeamID == team_A.json()["data"]["id"], Match.awayTeamID == team_A.json()["data"]["id"]),
+        and_(or_(Match.homeTeamID == team_A, Match.awayTeamID == team_A),
              Match.datetime_as_timestamp < datetime.datetime.now())).order_by(desc(Match.date)).limit(5).all(),
     Match.query.with_entities(Match.homeTeamID, Match.goalsHome, Match.goalsAway, Match.awayTeamID, Match.datetime_as_timestamp).filter(
-        and_(or_(Match.homeTeamID == team_B.json()["data"]["id"], Match.awayTeamID == team_B.json()["data"]["id"]),
+        and_(or_(Match.homeTeamID == team_B, Match.awayTeamID == team_B),
              Match.datetime_as_timestamp < datetime.datetime.now())).order_by(desc(Match.date)).limit(5).all())
 
     currentFormConverted = [[],[]]
     for match in currentForm[0]:
         winSymbol = ""
         loseSymbol = ""
-        if match.homeTeamID == team_A.json()["data"]["id"]:
+        if match.homeTeamID == team_A:
             winSymbol = "W"
             loseSymbol = "L"
         else:
@@ -317,7 +330,7 @@ def compareTeams(team_A, team_B):
     for match in currentForm[1]:
         winSymbol = ""
         loseSymbol = ""
-        if match.homeTeamID == team_B.json()["data"]["id"]:
+        if match.homeTeamID == team_B:
             winSymbol = "W"
             loseSymbol = "L"
         else:
