@@ -14,12 +14,12 @@
             <div>These teams have played {{fixture["head2headNumber"]}} matches against each other before</div>
             <div>where {{fixture["TeamA"]["name"]}} won: {{fixture["head2headWins"][0]}} games and {{fixture["TeamB"]["name"]}} won: {{fixture["head2headWins"][1]}} games,
             {% if (fixture["head2headNumber"] - (fixture["head2headWins"][0] + fixture["head2headWins"][1])) > 0 %}
-                Resulting in {{fixture["head2headNumber"] - (fixture["head2headWins"][0] + fixture["head2headWins"][1])}} draws.
+                with {{fixture["head2headNumber"] - (fixture["head2headWins"][0] + fixture["head2headWins"][1])}} draws.
             {% endif %}
             </div>
             <br>
             {% if fixture["historical"] %}
-                <div>The results of the last 3 times these teams played eachother:</div>
+                <div>The results of the last {{ fixture["historical"]|length }} times these teams played eachother:</div>
                 <ul>
                 {% for game in fixture["historical"] %}
                     <li>{{game[0]}}: {{game[1]}} - {{game[2]}} :{{game[3]}}</li>

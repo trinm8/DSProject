@@ -15,10 +15,11 @@ class ModelViewAuthorized(ModelView):
                 'username': userdata,
                 'password': request.cookies.get('password')
             }
-            loginAttempt = requests.post('http://users:5000/users/authenticate', json=loginData)
-            if loginAttempt.status_code == 200:
-                return True
-            else:
+            try:
+                loginAttempt = requests.post('http://users:5000/users/authenticate', json=loginData)
+                if loginAttempt.status_code == 200:
+                    return True
+            finally:
                 return False
         else:
             return False
@@ -36,10 +37,11 @@ class ModelViewAuthorizedSuperAdmin(ModelView):
                 'username': userdata,
                 'password': request.cookies.get('password')
             }
-            loginAttempt = requests.post('http://users:5000/users/authenticate', json=loginData)
-            if loginAttempt.status_code == 200 and loginAttempt.json()["data"]["superAdmin"]:
-                return True
-            else:
+            try:
+                loginAttempt = requests.post('http://users:5000/users/authenticate', json=loginData)
+                if loginAttempt.status_code == 200 and loginAttempt.json()["data"]["superAdmin"]:
+                    return True
+            finally:
                 return False
         else:
             return False
@@ -48,6 +50,9 @@ class ModelViewAuthorizedSuperAdmin(ModelView):
 class ModelViewAuthorizedMatches(ModelViewAuthorized):
 
     def on_model_change(self, form, model, is_created):
-        response = requests.get("http://matches:5000/matches/assignedReferees" + "?date=" + str(form.date.data))
-        if response.status_code == 200 and form.assignedRefereeID.data in list(response.json()["data"]):
-            raise validators.ValidationError('Referee is already assigned for that date')
+        try:
+            response = requests.get("http://matches:5000/matches/assignedReferees" + "?date=" + str(form.date.data))
+            if response.status_code == 200 and form.assignedRefereeID.data in list(response.json()["data"]) and form.assignedRefereeID.data is not None:
+                raise validators.ValidationError('Referee is already assigned for that date')
+        except requests.exceptions.ConnectionError:
+            pass

@@ -25,7 +25,9 @@
                     <tbody>
                         <tr>
                             <td>{{teamID}}</td>
-                            <td>{{teamValues["info"]["name"]}}</td>
+                            {% if teamValues["info"] %}
+                                <td>{{teamValues["info"]["name"]}}</td>
+                            {% endif %}
                             <td>{{teamValues["played"]}}</td>
                             <td>{{teamValues["wins"]}}</td>
                             <td>{{teamValues["draw"]}}</td>

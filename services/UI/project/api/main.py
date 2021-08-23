@@ -39,13 +39,17 @@ def leagueTables():
                 'name': division["name"],
                 'teams': []
             }
-        matches = requests.get("http://matches:5000/matches/leagueTable")
-        if matches.status_code != 200:
+        try:
+            matches = requests.get("http://matches:5000/matches/leagueTable")
+        except requests.exceptions.ConnectionError:
             return render_template('leagueTables.html', divisions=None)
-        for key, value in matches.json()["data"].items():
-            table[int(key)]["teams"].append(value)
-        return render_template('leagueTables.html', divisions=divisions.json()["data"]["divisions"], matches=matches.json()["data"],
-                               table=table)
+        else:
+            if matches.status_code != 200:
+                return render_template('leagueTables.html', divisions=None)
+            for key, value in matches.json()["data"].items():
+                table[int(key)]["teams"].append(value)
+            return render_template('leagueTables.html', divisions=divisions.json()["data"]["divisions"], matches=matches.json()["data"],
+                                   table=table)
     else:
         return render_template('leagueTables.html', divisions=None)
 
@@ -131,8 +135,13 @@ def division_rankings():
         finishedProperly = True
         connectionFailedTeams, connectionFailedDivisions = False, False
         divisions = divisions.json()["data"]
+        print(divisions)
+
         for divisionID, division in divisions.items():
             for result in division.values():
+                if result is None:
+                    continue
+
                 if connectionFailedTeams:
                     result[0] = "Team with ID: " + str(result[0])
                     continue
@@ -173,17 +182,31 @@ def division_rankings():
 @ui_blueprint.route('/fixture/<match_id>', methods=['GET'])
 def specific_fixture(match_id):
     resultObject = {}
+
+    """Get the data on the specific match"""
+
     try:
         specificMatch = requests.get("http://matches:5000/matches/" + str(match_id))
     except requests.exceptions.ConnectionError:
         flash("Something went wrong please try again later", 'error')
         return render_template('individualFixture.html')
     if specificMatch.status_code == 200:
-        homeInfo = requests.get("http://teamsclubs:5000/teamInfo/" + str(specificMatch.json()["data"]["homeTeamID"]))
-        if homeInfo.status_code == 200:
-            resultObject["TeamA"] = homeInfo.json()["data"]
-            teamAid = homeInfo.json()["data"]["id"]
-        else:
+
+        """Get the data on the specific teams. if the requests fail then the ID is used instead"""
+
+        try:
+            homeInfo = requests.get("http://teamsclubs:5000/teamInfo/" + str(specificMatch.json()["data"]["homeTeamID"]))
+            if homeInfo.status_code == 200:
+                resultObject["TeamA"] = homeInfo.json()["data"]
+                teamAid = homeInfo.json()["data"]["id"]
+            else:
+                resultObject["TeamA"] = {
+                    "name": "Team with ID: " + str(specificMatch.json()["data"]["homeTeamID"])
+                }
+                teamAid = specificMatch.json()["data"]["homeTeamID"]
+                flash("Team A (ID:" + str(specificMatch.json()["data"]["homeTeamID"]) + ") " +
+                      "does not exist in the database. Resulting data might thus be incomplete", 'error')
+        except requests.exceptions.ConnectionError:
             resultObject["TeamA"] = {
                 "name": "Team with ID: " + str(specificMatch.json()["data"]["homeTeamID"])
             }
@@ -191,11 +214,19 @@ def specific_fixture(match_id):
             flash("Team A (ID:" + str(specificMatch.json()["data"]["homeTeamID"]) + ") " +
                   "does not exist in the database. Resulting data might thus be incomplete", 'error')
 
-        awayInfo = requests.get("http://teamsclubs:5000/teamInfo/" + str(specificMatch.json()["data"]["awayTeamID"]))
-        if awayInfo.status_code == 200:
-            resultObject["TeamB"] = awayInfo.json()["data"]
-            teamBid = awayInfo.json()["data"]["id"]
-        else:
+        try:
+            awayInfo = requests.get("http://teamsclubs:5000/teamInfo/" + str(specificMatch.json()["data"]["awayTeamID"]))
+            if awayInfo.status_code == 200:
+                resultObject["TeamB"] = awayInfo.json()["data"]
+                teamBid = awayInfo.json()["data"]["id"]
+            else:
+                resultObject["TeamB"] = {
+                    "name": "Team with ID: " + str(specificMatch.json()["data"]["awayTeamID"])
+                }
+                teamBid = specificMatch.json()["data"]["awayTeamID"]
+                flash("Team B (ID:" + str(specificMatch.json()["data"]["awayTeamID"]) + ") " +
+                      "does not exist in the database. Resulting data might thus be incomplete", 'error')
+        except requests.exceptions.ConnectionError:
             resultObject["TeamB"] = {
                 "name": "Team with ID: " + str(specificMatch.json()["data"]["awayTeamID"])
             }
@@ -203,60 +234,86 @@ def specific_fixture(match_id):
             flash("Team B (ID:" + str(specificMatch.json()["data"]["awayTeamID"]) + ") " +
                   "does not exist in the database. Resulting data might thus be incomplete", 'error')
 
+        """Get the date and time of the match and put it in a correct and workable format"""
+
         resultObject["date"] = datetime.datetime.strptime(specificMatch.json()["data"]["date"], "%a, %d %b %Y %H:%M:%S %Z").strftime("%d-%m-%Y")
         resultObject["time"] = specificMatch.json()["data"]["time"]
+
+        """Get the assigned referee"""
+
         referee = "No referee assigned"
         if specificMatch.json()["data"]["refereeID"]:
-            refereeResponse = requests.get("http://referee:5000/referee/" + str(specificMatch.json()["data"]["refereeID"]))
-            if refereeResponse.status_code == 200:
-                referee = refereeResponse.json()["data"]["first_name"] + " " + refereeResponse.json()["data"]["last_name"]
+            try:
+                refereeResponse = requests.get("http://referee:5000/referee/" + str(specificMatch.json()["data"]["refereeID"]))
+                if refereeResponse.status_code == 200:
+                    referee = refereeResponse.json()["data"]["first_name"] + " " + refereeResponse.json()["data"]["last_name"]
+            except requests.exceptions.ConnectionError:
+                pass
         resultObject["referee"] = referee
+
+        """Check if the match still has to be played and if so construct the data for the webpage"""
+
         matchdate = convertMatchTimeStrToDateTime(specificMatch.json()["data"]["date"], specificMatch.json()["data"]["time"])
         if matchdate > datetime.datetime.now():
-            comparingData = requests.get("http://matches:5000/compareTeams/" + str(specificMatch.json()["data"]["homeTeamID"]) + '&' + str(specificMatch.json()["data"]["awayTeamID"]))
-            if comparingData.status_code == 200:
-                resultObject["head2headNumber"] = comparingData.json()["data"]["head2headNumber"]
-                resultObject["head2headWins"] = comparingData.json()["data"]["wins"]
-                historical = comparingData.json()["data"]["historicalCombined"]
+            try:
+                comparingData = requests.get("http://matches:5000/compareTeams/" + str(specificMatch.json()["data"]["homeTeamID"]) + '&' + str(specificMatch.json()["data"]["awayTeamID"]))
+                if comparingData.status_code == 200:
+                    resultObject["head2headNumber"] = comparingData.json()["data"]["head2headNumber"]
+                    resultObject["head2headWins"] = comparingData.json()["data"]["wins"]
+                    historical = comparingData.json()["data"]["historicalCombined"]
 
-                teamIDs = {}
+                    teamIDs = {}
 
-                for game in historical:
-                    if game[0] == teamAid:
-                        game[0] = resultObject["TeamA"]["name"]
-                    elif game[0] == teamBid:
-                        game[0] = resultObject["TeamA"]["name"]
-                    else:
-                        if game[0] in teamIDs:
-                            game[0] = teamIDs[game[0]]
-                        newTeam = requests.get("http://teamclubs:5000/teamInfo/" + str(game[0]))
-                        if newTeam.status_code == 200:
-                            teamIDs[game[0]] = newTeam.json()["data"]["name"]
-                            game[0] = newTeam.json()["data"]["name"]
+                    for game in historical:
+                        if game[0] == teamAid:
+                            game[0] = resultObject["TeamA"]["name"]
+                        elif game[0] == teamBid:
+                            game[0] = resultObject["TeamB"]["name"]
                         else:
-                            game[0] = "Team not found, id:" + str(game[0])
+                            if game[0] in teamIDs:
+                                game[0] = teamIDs[game[0]]
+                            try:
+                                newTeam = requests.get("http://teamclubs:5000/teamInfo/" + str(game[0]))
+                                if newTeam.status_code == 200:
+                                    teamIDs[game[0]] = newTeam.json()["data"]["name"]
+                                    game[0] = newTeam.json()["data"]["name"]
+                                else:
+                                    game[0] = "Team not found, id:" + str(game[0])
+                            except requests.exceptions.ConnectionError:
+                                game[0] = "Team not found, id:" + str(game[0])
 
-                    if game[-1] == teamAid:
-                        game[-1] = resultObject["TeamA"]["name"]
-                    elif game[-1] == teamBid:
-                        game[-1] = resultObject["TeamB"]["name"]
-                    else:
-                        if game[-1] in teamIDs:
-                            game[-1] = teamIDs[game[-1]]
-                        newTeam = requests.get("http://teamclubs:5000/teamInfo/" + str(game[-1]))
-                        if newTeam.status_code == 200:
-                            teamIDs[game[-1]] = newTeam.json()["data"]["name"]
-                            game[-1] = newTeam.json()["data"]["name"]
+                        if game[-1] == teamAid:
+                            game[-1] = resultObject["TeamA"]["name"]
+                        elif game[-1] == teamBid:
+                            game[-1] = resultObject["TeamB"]["name"]
                         else:
-                            game[-1] = "Team not found, id:" + str(game[-1])
-                resultObject["historical"] = historical
-                resultObject["currentForm"] = comparingData.json()["data"]["currentForm"]
+                            if game[-1] in teamIDs:
+                                game[-1] = teamIDs[game[-1]]
+                            try:
+                                newTeam = requests.get("http://teamclubs:5000/teamInfo/" + str(game[-1]))
+                                if newTeam.status_code == 200:
+                                    teamIDs[game[-1]] = newTeam.json()["data"]["name"]
+                                    game[-1] = newTeam.json()["data"]["name"]
+                                else:
+                                    game[-1] = "Team not found, id:" + str(game[-1])
+                            except requests.exceptions.ConnectionError:
+                                game[-1] = "Team not found, id:" + str(game[-1])
+                    resultObject["historical"] = historical
+                    resultObject["currentForm"] = comparingData.json()["data"]["currentForm"]
+            except requests.exceptions.ConnectionError:
+                pass
+
+        """Check if the weather for the match if it is upcomming"""
+
         if matchdate > datetime.datetime.now() and matchdate < datetime.datetime.now() + datetime.timedelta(days=7):
             days = (matchdate - (datetime.datetime.now())).days
-            weather = requests.get("https://api.openweathermap.org/data/2.5/onecall?lat=51.2194&lon=4.4025&units=metric&exclude=current,minutely,hourly&appid=60c17e865997f70b0eafb801886a4af6")
-            if weather.status_code == 200:
-                weatherdata = weather.json()
-                resultObject["weather"] = weatherdata["daily"][days]
+            try:
+                weather = requests.get("https://api.openweathermap.org/data/2.5/onecall?lat=51.2194&lon=4.4025&units=metric&exclude=current,minutely,hourly&appid=60c17e865997f70b0eafb801886a4af6")
+                if weather.status_code == 200:
+                    weatherdata = weather.json()
+                    resultObject["weather"] = weatherdata["daily"][days]
+            except requests.exceptions.ConnectionError:
+                pass
         return render_template('individualFixture.html', fixture=resultObject)
     return render_template('individualFixture.html', message=specificMatch)
 
@@ -294,15 +351,20 @@ def teamPage(team_id):
     try:
         info = requests.get("http://teamsclubs:5000/teamInfo/" + str(team_id))
     except:
-        return render_template('teamPage.html')
+        abort(404)
 
     if info.status_code == 200:
-        upcomingMatches = requests.get("http://matches:5000/matches/upcoming/" + str(team_id))
-        previousMatches = requests.get("http://matches:5000/matches/previous/" + str(team_id))
-        if upcomingMatches.status_code != 200 and previousMatches.status_code != 200:
-            abort(404)
-        return render_template('teamPage.html', info=info.json()["data"], upcomingMatches=upcomingMatches.json()["data"],
-                               previousMatches=previousMatches.json()["data"])
+        try:
+            upcomingMatches = requests.get("http://matches:5000/matches/upcoming/" + str(team_id))
+            previousMatches = requests.get("http://matches:5000/matches/previous/" + str(team_id))
+            if upcomingMatches.status_code != 200:
+                upcomingMatches = None
+            if previousMatches.status_code != 200:
+                previousMatches = None
+            return render_template('teamPage.html', info=info.json()["data"], upcomingMatches=upcomingMatches.json()["data"],
+                                   previousMatches=previousMatches.json()["data"])
+        except requests.exceptions.ConnectionError:
+            return render_template('teamPage.html', info=info.json()["data"])
     else:
         abort(404)
         return render_template('teamPage.html')
@@ -366,9 +428,13 @@ def editTeam():
     userInfo = requests.get("http://users:5000/users/" + str(userID))
     if userInfo.status_code != 200:
         abort(404)
-    teamInfo = requests.get("http://teamsclubs:5000/teamInfo/" + str(userInfo.json()["data"]["team"]))
-    if teamInfo.status_code != 200:
-        flash("Team either doesn't exist or user isn't linked to a team yet.", 'error')
+    try:
+        teamInfo = requests.get("http://teamsclubs:5000/teamInfo/" + str(userInfo.json()["data"]["team"]))
+        if teamInfo.status_code != 200:
+            flash("Team either doesn't exist or user isn't linked to a team yet.", 'error')
+            return redirect("loginPortal")
+    except requests.exceptions.ConnectionError:
+        flash("Something went wrong on our end please try again later.", 'error')
         return redirect("loginPortal")
 
     teamInfo = teamInfo.json()["data"]
@@ -401,9 +467,13 @@ def editScores():
     if userInfo.status_code != 200:
         abort(404)
 
-    previousMatches = requests.get("http://matches:5000/matches/PlayedHomeGames/" + str(userInfo.json()["data"]["team"]))
-    if previousMatches.status_code != 200:
-        flash("The team linked to your account doesn't exist in our database, please contact a administrator.", 'error')
+    try:
+        previousMatches = requests.get("http://matches:5000/matches/PlayedHomeGames/" + str(userInfo.json()["data"]["team"]))
+        if previousMatches.status_code != 200:
+            flash("The team linked to your account doesn't exist in our database, please contact a administrator.", 'error')
+            return redirect("loginPortal")
+    except requests.exceptions.ConnectionError:
+        flash("Something went wrong on our end please try again later.", 'error')
         return redirect("loginPortal")
 
     forms = []

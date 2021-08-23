@@ -124,19 +124,21 @@ def get_matches_from_division_filtered_on_team(division_id, team_id):
     request_object = {
         'status': 'failed'
     }
-    division = requests.get("http://teamsclubs:5000/divisions/" + str(division_id))
-    if not division:
-        request_object["message"] = "Division doesn't exist"
-        return jsonify(request_object), 404
     try:
-        matches = Match.query.filter(Match.divisionID == division_id,
-                                     or_(Match.awayTeamID == team_id, Match.homeTeamID == team_id)).all()
-        request_object["data"] = {}
-        request_object["data"]["matches"] = [match.to_json() for match in matches]
-        return jsonify(request_object), 200
-    except ValueError:
-        request_object["message"] = "The given division and/or team doesn't exist"
-        return jsonify(request_object), 404
+        division = requests.get("http://teamsclubs:5000/divisions/" + str(division_id))
+        if division.status_code != 200:
+            request_object["message"] = "Division doesn't exist"
+            return jsonify(request_object), 404
+    finally:
+        try:
+            matches = Match.query.filter(Match.divisionID == division_id,
+                                         or_(Match.awayTeamID == team_id, Match.homeTeamID == team_id)).all()
+            request_object["data"] = {}
+            request_object["data"]["matches"] = [match.to_json() for match in matches]
+            return jsonify(request_object), 200
+        except ValueError:
+            request_object["message"] = "The given division and/or team doesn't exist"
+            return jsonify(request_object), 404
 
 
 @matches_blueprint.route('/matches/ranking', methods=['GET'])
@@ -192,32 +194,43 @@ def get_league_table():
         if match.divisionID not in divisions:
             divisions[match.divisionID] = {}
         if match.homeTeamID not in divisions[match.divisionID]:
-            teamInfo = requests.get("http://teamsclubs:5000/teamInfo/" + str(match.homeTeamID))
-            if teamInfo.status_code != 200:
-                request_object["message"] = "couldn't find team info"
-                return jsonify(request_object), 404
+            try:
+                teamInfo = requests.get("http://teamsclubs:5000/teamInfo/" + str(match.homeTeamID))
+            except requests.exceptions.ConnectionError:
+                teamInfo = None
+            else:
+                if teamInfo.status_code != 200:
+                    request_object["message"] = "couldn't find team info"
+                    return jsonify(request_object), 404
+                teamInfo = teamInfo.json()["data"]
+
             divisions[match.divisionID][match.homeTeamID] = {
                 'points': 0,
                 'wins': 0,
                 'loses': 0,
                 'draw': 0,
                 'played': 0,
-                'info': teamInfo.json()["data"]
+                'info': teamInfo
             }
         if match.awayTeamID not in divisions[match.divisionID]:
-            teamInfo = requests.get("http://teamsclubs:5000/teamInfo/" + str(match.awayTeamID))
-            if teamInfo.status_code != 200:
-                request_object["message"] = "couldn't find team info"
-                return jsonify(request_object), 404
+            try:
+                teamInfo = requests.get("http://teamsclubs:5000/teamInfo/" + str(match.awayTeamID))
+            except requests.exceptions.ConnectionError:
+                teamInfo = None
+            else:
+                if teamInfo.status_code != 200:
+                    request_object["message"] = "couldn't find team info"
+                    return jsonify(request_object), 404
+                teamInfo = teamInfo.json()["data"]
             divisions[match.divisionID][match.awayTeamID] = {
                 'points': 0,
                 'wins': 0,
                 'loses': 0,
                 'draw': 0,
                 'played': 0,
-                'info': teamInfo.json()["data"]
+                'info': teamInfo
             }
-        divisions[match.divisionID][match.awayTeamID]["played"] = divisions[match.divisionID][match.awayTeamID][
+            divisions[match.divisionID][match.awayTeamID]["played"] = divisions[match.divisionID][match.awayTeamID][
                                                                       "played"] + 1
         divisions[match.divisionID][match.homeTeamID]["played"] = divisions[match.divisionID][match.homeTeamID][
                                                                       "played"] + 1
@@ -251,16 +264,23 @@ def compareTeams(team_A, team_B):
         'message': "request failed\n"
     }
     success = True
-    team_ARes = requests.get("http://teamsclubs:5000/teams/" + str(team_A))
-    if team_ARes.status_code != 200:
+    try:
+        team_ARes = requests.get("http://teamsclubs:5000/teams/" + str(team_A))
+        if team_ARes.status_code != 200:
+            request_object["message"] += "Team A could not be found\n"
+            success = False
+    except requests.exceptions.ConnectionError:
         request_object["message"] += "Team A could not be found\n"
         success = False
 
-    team_BRes = requests.get("http://teamsclubs:5000/teams/" + str(team_B))
-    if team_BRes.status_code != 200:
+    try:
+        team_BRes = requests.get("http://teamsclubs:5000/teams/" + str(team_B))
+        if team_BRes.status_code != 200:
+            request_object["message"] += "Team B could not be found\n"
+            success = False
+    except requests.exceptions.ConnectionError:
         request_object["message"] += "Team B could not be found\n"
         success = False
-
 
     if not success:
         if not Match.query.filter_by(homeTeamID=team_A).all() and not Match.query.filter_by(awayTeamID=team_A).all():
@@ -358,11 +378,12 @@ def getNextMatches(team_id):
         'status': 'failed',
         'message': "request failed\n"
     }
-    team = requests.get("http://teamsclubs:5000/teams/" + str(team_id))
-    if team.status_code == 200:
+    try:
+        team = requests.get("http://teamsclubs:5000/teams/" + str(team_id))
+    except requests.exceptions.ConnectionError:
         upcomingMatches = Match.query.with_entities(Match.id, Match.homeTeamID, Match.awayTeamID,
                                   Match.datetime_as_timestamp).filter(
-            and_(or_(Match.homeTeamID == team.json()["data"]["id"], Match.awayTeamID == team.json()["data"]["id"]),
+            and_(or_(Match.homeTeamID == team_id, Match.awayTeamID == team_id),
                  Match.datetime_as_timestamp > datetime.datetime.now())).order_by(asc(Match.date)).limit(5).all()
 
         request_object = {
@@ -370,10 +391,22 @@ def getNextMatches(team_id):
             'data': upcomingMatches
         }
         return jsonify(request_object), 200
-    elif team.status_code == 404:
-        request_object["message"] = "team does not exist"
+    else:
+        if team.status_code == 200:
+            upcomingMatches = Match.query.with_entities(Match.id, Match.homeTeamID, Match.awayTeamID,
+                                      Match.datetime_as_timestamp).filter(
+                and_(or_(Match.homeTeamID == team.json()["data"]["id"], Match.awayTeamID == team.json()["data"]["id"]),
+                     Match.datetime_as_timestamp > datetime.datetime.now())).order_by(asc(Match.date)).limit(5).all()
+
+            request_object = {
+                'status': 'success',
+                'data': upcomingMatches
+            }
+            return jsonify(request_object), 200
+        elif team.status_code == 404:
+            request_object["message"] = "team does not exist"
+            return jsonify(request_object), 404
         return jsonify(request_object), 404
-    return jsonify(request_object), 404
 
 @matches_blueprint.route('/matches/previous/<team_id>', methods=['GET'])
 def getPreviousMatches(team_id):
@@ -381,21 +414,33 @@ def getPreviousMatches(team_id):
         'status': 'failed',
         'message': "Request failed\n"
     }
-    team = requests.get("http://teamsclubs:5000/teams/" + str(team_id))
-    if team.status_code == 200:
+    try:
+        team = requests.get("http://teamsclubs:5000/teams/" + str(team_id))
+    except requests.exceptions.ConnectionError:
         previousMatches = Match.query.with_entities(Match.id, Match.homeTeamID, Match.awayTeamID,
                                                     Match.datetime_as_timestamp).filter(
-            and_(or_(Match.homeTeamID == team.json()["data"]["id"], Match.awayTeamID == team.json()["data"]["id"]),
+            and_(or_(Match.homeTeamID == team_id, Match.awayTeamID == team_id),
                  Match.datetime_as_timestamp < datetime.datetime.now())).order_by(desc(Match.date)).limit(3).all()
         request_object = {
             'status': 'success',
             'data': previousMatches
         }
         return jsonify(request_object), 200
-    elif team.status_code == 404:
-        request_object["message"] = "team does not exist"
+    else:
+        if team.status_code == 200:
+            previousMatches = Match.query.with_entities(Match.id, Match.homeTeamID, Match.awayTeamID,
+                                                        Match.datetime_as_timestamp).filter(
+                and_(or_(Match.homeTeamID == team.json()["data"]["id"], Match.awayTeamID == team.json()["data"]["id"]),
+                     Match.datetime_as_timestamp < datetime.datetime.now())).order_by(desc(Match.date)).limit(3).all()
+            request_object = {
+                'status': 'success',
+                'data': previousMatches
+            }
+            return jsonify(request_object), 200
+        elif team.status_code == 404:
+            request_object["message"] = "team does not exist"
+            return jsonify(request_object), 404
         return jsonify(request_object), 404
-    return jsonify(request_object), 404
 
 @matches_blueprint.route('/matches/PlayedHomeGames/<team_id>', methods=['GET'])
 def getPlayedHomeGames(team_id):
