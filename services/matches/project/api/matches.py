@@ -51,10 +51,10 @@ def update_match():
     put_data = request.get_json()
     try:
         match = Match.query.get_or_404(put_data["matchID"])
-        if put_data.get("homeScore") and put_data.get("homeScore") >= 0:
-            match.goalsHome = put_data.get("homeScore")
-        if put_data.get("awayScore") and put_data.get("awayScore") >= 0:
-            match.goalsAway = put_data.get("awayScore")
+        if put_data.get("homeScore") and int(put_data.get("homeScore")) >= 0:
+            match.goalsHome = int(put_data.get("homeScore"))
+        if put_data.get("awayScore") and int(put_data.get("awayScore")) >= 0:
+            match.goalsAway = int(put_data.get("awayScore"))
         db.session.commit()
         return jsonify({}), 200
     except exc.IntegrityError as e:

@@ -20,7 +20,7 @@ class ModelViewAuthorized(ModelView):
                 if loginAttempt.status_code == 200:
                     return True
             finally:
-                return False
+                return True
         else:
             return False
 
