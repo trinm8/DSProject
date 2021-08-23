@@ -38,6 +38,8 @@
             </table>
             </div>
         {% endfor %}
+    {% else %}
+        <div>The League tables couldnt be constructed because there is insufficient data</div>
     {% endif %}
     </div>
 {% endblock %}

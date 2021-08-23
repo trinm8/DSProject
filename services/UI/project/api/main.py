@@ -103,14 +103,24 @@ def fixtures():
 def division_rankings():
     divisions = requests.get("http://matches:5000/matches/ranking")
     if divisions.status_code == 200:
+        finishedProperly = True
         divisions = divisions.json()["data"]
         for divisionID, division in divisions.items():
             for result in division.values():
                 name = requests.get(str("http://teamsclubs:5000/teamInfo/" + str(result[0])))
                 if name.status_code == 200:
                     result[0] = name.json()["data"]["name"]
+                else:
+                    result[0] = "Team with ID: " + str(result[0])
+                    finishedProperly = False
             divisionName = requests.get("http://teamsclubs:5000/divisions/"+str(divisionID))
-            division["name"] = divisionName.json()["data"]["name"]
+            if divisionName.status_code == 200:
+                division["name"] = divisionName.json()["data"]["name"]
+            else:
+                division["name"] = "Division with ID: " + divisionID
+                finishedProperly = False
+        if not finishedProperly:
+            flash("Something went wrong with fetching the data. Resulting data might be substituted with IDs", 'error')
         return render_template('divisionRankings.html', divisions=divisions)
     return render_template('divisionRankings.html')
 
@@ -126,14 +136,24 @@ def specific_fixture(match_id):
             resultObject["TeamA"] = homeInfo.json()["data"]
             teamAid = homeInfo.json()["data"]["id"]
         else:
-            abort(404)
+            resultObject["TeamA"] = {
+                "name": "Team with ID: " + str(specificMatch.json()["data"]["homeTeamID"])
+            }
+            teamAid = specificMatch.json()["data"]["homeTeamID"]
+            flash("Team A (ID:" + str(specificMatch.json()["data"]["homeTeamID"]) + ") " +
+                  "does not exist in the database. Resulting data might thus be incomplete", 'error')
 
         awayInfo = requests.get("http://teamsclubs:5000/teamInfo/" + str(specificMatch.json()["data"]["awayTeamID"]))
         if awayInfo.status_code == 200:
             resultObject["TeamB"] = awayInfo.json()["data"]
             teamBid = awayInfo.json()["data"]["id"]
         else:
-            abort(404)
+            resultObject["TeamB"] = {
+                "name": "Team with ID: " + str(specificMatch.json()["data"]["awayTeamID"])
+            }
+            teamBid = specificMatch.json()["data"]["awayTeamID"]
+            flash("Team B (ID:" + str(specificMatch.json()["data"]["awayTeamID"]) + ") " +
+                  "does not exist in the database. Resulting data might thus be incomplete", 'error')
 
         resultObject["date"] = datetime.datetime.strptime(specificMatch.json()["data"]["date"], "%a, %d %b %Y %H:%M:%S %Z").strftime("%d-%m-%Y")
         resultObject["time"] = specificMatch.json()["data"]["time"]
@@ -285,7 +305,8 @@ def editTeam():
         abort(404)
     teamInfo = requests.get("http://teamsclubs:5000/teamInfo/" + str(userInfo.json()["data"]["team"]))
     if teamInfo.status_code != 200:
-        abort(404)
+        flash("Team either doesn't exist or user isn't linked to a team yet.", 'error')
+        return redirect("loginPortal")
 
     teamInfo = teamInfo.json()["data"]
     editform.suffix = teamInfo["suffix"]
@@ -319,15 +340,24 @@ def editScores():
 
     previousMatches = requests.get("http://matches:5000/matches/PlayedHomeGames/" + str(userInfo.json()["data"]["team"]))
     if previousMatches.status_code != 200:
-        abort(404)
+        flash("The team linked to your account doesn't exist in our database, please contact a administrator.", 'error')
+        return redirect("loginPortal")
 
     forms = []
+    validConnection = True
     for match in previousMatches.json()["data"]:
-        opposingTeamInfo = requests.get("http://teamsclubs:5000/teamInfo/" + str(match[2]))
-        if opposingTeamInfo.status_code == 200:
-            forms.append(editHomeScores(matchID=match[0],opposingTeamName=opposingTeamInfo.json()["data"]["name"]))
-        else:
+        if not validConnection:
             forms.append(editHomeScores(matchID=match[0]))
+            continue
+        try:
+            opposingTeamInfo = requests.get("http://teamsclubs:5000/teamInfo/" + str(match[2]))
+            if opposingTeamInfo.status_code == 200:
+                forms.append(editHomeScores(matchID=match[0],opposingTeamName=opposingTeamInfo.json()["data"]["name"]))
+            else:
+                forms.append(editHomeScores(matchID=match[0]))
+        except requests.exceptions.ConnectionError:
+            forms.append(editHomeScores(matchID=match[0]))
+            validConnection = False
 
     #return jsonify(previousMatches.json()["data"])
     return render_template("editHomeScores.html", forms=forms, matches=previousMatches.json()["data"])
