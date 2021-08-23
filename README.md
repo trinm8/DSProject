@@ -108,3 +108,40 @@ Alot of the services have a ping endpoint which is another left over of the tuto
   - returns a page where the user can edit the information of their club
 - /editScores [GET, POST]
   - returns a page where the user can edit the scores of games played on their home field
+
+## Small explanation
+
+### Home page
+This page has 4 main buttons to go to the 4 pages everyone can access. In the top left you have a home button and login button.
+
+### League tables
+this page contains the tables for the scores of the teams in each division. It also shows the IDs of the teams in this table, while this might not be the cleanest option I did it this way because the site works on ID search instead of names and when some services go down the site shows IDs instead of names as a back up.
+
+### Fixtures
+This page shows us 2 search bars on which you can search based on divisions and teams, with the teams search being optinional.
+Once the division id is given it will show all the fixtures orderd by date. each fixture has a detail button that will show the details of the match. when the match hasnt been played yet, the score will be replaced by a timestamp of when the match is to be played
+
+### Details Fixture
+Once you press the details button on the fixture page or redirect to it directly you will see the specific details of the given match. If the match hasnt been played yet the page will show aditional information about the match as required by the given requirements of the project.
+
+### Division Rankings
+The third button on the main page will show you the best teams in attacking, defending and most cleansheets in each division.
+
+### Teams
+The last button will give a list of all the available teams, each team can be clicked on to show their details. There is also a search function at the top.
+
+### Details Teams
+This page give the details of the team
+
+### login
+The 2nd button on the navbar goes to a login screen or login portal depending on wether or not the current user is logged in.
+Once a user is logged in their details will be stored in cookies for easy access. On the login portal we have again 3 or 2 buttons depending on the priviledges of the user. (There is currently no way to logout, if you want to use a different user try clearing the cookies of your browser or using incognito mode)
+
+### Edit team info
+The first button in the login portal gives the user the option to edit their team info.
+
+### Edit home scores
+The second button gives a list of all the matches played on the users home field and each can be updated individually.
+
+### Admin menu
+The third button will only be visible to admin users. If the user goes to the URL directly they will only be able to see the landing page of the admin menu the rest will be hidden. Each of the database entries has a their own tab for the CRUD operations.
